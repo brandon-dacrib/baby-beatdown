@@ -1,3 +1,4 @@
 render/*.png
 .DS_Store
 __pycache__/
+render/poses/*.json
