@@ -1,0 +1,167 @@
+# quantize.py: stageN.png (RGBA) -> toy/bgN.lua with 6 x 15-colour palettes, 4bpp tiles (flip-deduped), tilemap.
+# BG palettes used in the game: 0,3,4,5,6,7 (1 and 2 belong to the HUD font).
+import sys, os, base64, numpy as np
+from PIL import Image
+
+PAL_SLOTS = [0, 3, 4, 5, 6, 7]
+K = len(PAL_SLOTS)
+
+def to555(rgb):
+    return (rgb // 8).astype(np.int32)  # 0..31 per channel
+
+def kmeans_colors(pix, n, iters=12, seed=0):
+    """pix: Mx3 int array (0..31). returns n centres (0..31 ints), weighted k-means on unique colours."""
+    if len(pix) == 0:
+        return np.zeros((n, 3), np.int32)
+    uniq, counts = np.unique(pix, axis=0, return_counts=True)
+    if len(uniq) <= n:
+        out = np.zeros((n, 3), np.int32); out[:len(uniq)] = uniq
+        return out
+    rng = np.random.default_rng(seed)
+    # init: weighted random picks, spread out (k-means++ lite)
+    centres = [uniq[rng.choice(len(uniq), p=counts / counts.sum())]]
+    for _ in range(n - 1):
+        d = np.min([((uniq - c) ** 2).sum(1) for c in centres], axis=0) * counts
+        centres.append(uniq[np.argmax(d)])
+    centres = np.array(centres, np.float64)
+    for _ in range(iters):
+        d = ((uniq[:, None, :] - centres[None, :, :]) ** 2).sum(2)
+        a = d.argmin(1)
+        for k in range(n):
+            sel = a == k
+            if sel.any():
+                centres[k] = (uniq[sel] * counts[sel][:, None]).sum(0) / counts[sel].sum()
+    return np.clip(np.round(centres), 0, 31).astype(np.int32)
+
+def tile_error(tile, alpha, pal):
+    pix = tile[alpha]
+    if len(pix) == 0:
+        return 0.0
+    d = ((pix[:, None, :] - pal[None, :, :]) ** 2).sum(2).min(1)
+    return d.sum()
+
+def run(n, src, outdir, sky, slots=None, floor_rule=True, label="painted stage"):
+    slots = list(slots or PAL_SLOTS)
+    K = len(slots)
+    im = Image.open(src).convert("RGBA")
+    a = np.array(im)
+    rgb = to555(a[..., :3].astype(np.int32))
+    alpha = a[..., 3] > 0
+    H, W = alpha.shape
+    th, tw = H // 8, W // 8
+    tiles = [(rgb[ty*8:ty*8+8, tx*8:tx*8+8], alpha[ty*8:ty*8+8, tx*8:tx*8+8]) for ty in range(th) for tx in range(tw)]
+    # initial grouping by mean colour
+    means = np.array([t[a_].mean(0) if a_.any() else np.array([0, 0, 0.0]) for t, a_ in tiles])
+    rng = np.random.default_rng(1)
+    cents = means[rng.choice(len(means), K, replace=False)]
+    assign = np.zeros(len(tiles), int)
+    for it in range(4):
+        d = ((means[:, None, :] - cents[None, :, :]) ** 2).sum(2)
+        assign = d.argmin(1)
+        for k in range(K):
+            if (assign == k).any(): cents[k] = means[assign == k].mean(0)
+    floor = np.array([floor_rule and (i // tw) >= 20 for i in range(len(tiles))])
+    if floor_rule:
+        assign[floor] = 0
+        assign[~floor & (assign == 0)] = 1
+    pals = None
+    for it in range(4):
+        pals = []
+        for k in range(K):
+            pix = np.concatenate([t[a_] for (t, a_), g in zip(tiles, assign) if g == k] or [np.zeros((0, 3), np.int32)])
+            pals.append(kmeans_colors(pix, 15, seed=k + it))
+        # reassign tiles to the palette with least error
+        errs = np.array([[tile_error(t, a_, p) for p in pals] for (t, a_) in tiles])
+        if floor_rule:
+            errs[floor, 1:] = 1e18
+            errs[~floor, 0] = 1e18
+        new = errs.argmin(1)
+        changed = int((new != assign).sum())
+        assign = new
+        if changed == 0: break
+    # encode
+    tile_bytes = {}
+    order = []
+    mapw = []
+    blank = bytes(32)
+    tile_bytes[blank] = 0; order.append(blank)
+    total_err = 0
+    for i, (t, a_) in enumerate(tiles):
+        k = assign[i]; pal = pals[k]
+        idx = np.zeros((8, 8), np.int32)
+        if a_.any():
+            pix = t[a_]
+            d = ((pix[:, None, :] - pal[None, :, :]) ** 2).sum(2)
+            total_err += d.min(1).sum()
+            idx[a_] = d.argmin(1) + 1
+        best = None
+        for fx in (0, 1):
+            for fy in (0, 1):
+                v = idx[::-1] if fy else idx
+                v = v[:, ::-1] if fx else v
+                b = encode_tile(v)
+                if b in tile_bytes:
+                    best = (tile_bytes[b], fx, fy); break
+            if best: break
+        if best is None:
+            b = encode_tile(idx)
+            tile_bytes[b] = len(order); order.append(b)
+            best = (tile_bytes[b], 0, 0)
+        ti, fx, fy = best
+        mapw.append(ti | (slots[k] << 10) | (fx << 14) | (fy << 15))
+    tiles_blob = b"".join(order)
+    map_blob = b"".join(int(w).to_bytes(2, "little") for w in mapw)
+    palette_words = []
+    for slot in PAL_SLOTS:  # the Lua loader always expects six palettes in slot order 0,3,4,5,6,7
+        if slot in slots:
+            p = pals[slots.index(slot)]
+            palette_words.append([int(c[0] | (c[1] << 5) | (c[2] << 10)) for c in p])
+        else:
+            palette_words.append([0] * 15)
+    lua = []
+    lua.append(f"-- bg{n}.lua: {label} {n} (generated by tools/quantize.py; {len(order)} tiles, {K} palettes)")
+    lua.append("BGDATA = BGDATA or {}")
+    lua.append(f"BGDATA[{n}] = {{ ntiles = {len(order)}, tsum = {sum(tiles_blob) % 65536}, msum = {sum(map_blob) % 65536},")
+    lua.append(f"  sky = {{ {{{sky[0][0]},{sky[0][1]},{sky[0][2]}}}, {{{sky[1][0]},{sky[1][1]},{sky[1][2]}}} }},")
+    lua.append("  pal = { " + ", ".join("{" + ",".join(str(w) for w in p) + "}" for p in palette_words) + " },")
+    lua.append('  tiles = nil }')
+    text = "\n".join(lua) + "\n"
+    open(os.path.join(outdir, f"bg{n}.lua"), "w").write(text)
+    b64 = base64.b64encode(tiles_blob).decode()
+    cut = [(len(b64) // 3) // 4 * 4, (2 * len(b64) // 3) // 4 * 4]
+    for i, part in enumerate([b64[:cut[0]], b64[cut[0]:cut[1]], b64[cut[1]:]]):
+        open(os.path.join(outdir, f"bg{n}{'abc'[i]}.lua"), "w").write(f"-- bg{n}{'abc'[i]}.lua: tile data part {i+1}/3 for painted stage {n} (generated)\nBGDATA[{n}].t{i+1} = \"{part}\"\n")
+    mtext = f"-- bg{n}m.lua: tilemap for painted stage {n} (generated)\nBGDATA[{n}].map = \"" + base64.b64encode(map_blob).decode() + "\"\n"
+    open(os.path.join(outdir, f"bg{n}m.lua"), "w").write(mtext)
+    # preview of the quantized result
+    out = np.zeros((H, W, 3), np.uint8)
+    for i, (t, a_) in enumerate(tiles):
+        ty, tx = divmod(i, tw)
+        pal = pals[assign[i]]
+        pix = t[a_]
+        if len(pix):
+            d = ((pix[:, None, :] - pal[None, :, :]) ** 2).sum(2).argmin(1)
+            blk = np.zeros((8, 8, 3), np.uint8)
+            blk[a_] = (pal[d] * 8 + 4)
+            out[ty*8:ty*8+8, tx*8:tx*8+8] = blk
+    Image.fromarray(out).resize((W*2, H*2), 0).save(os.path.join(outdir, "..", "render", f"stage{n}_quant.png"))
+    print(f"stage {n}: {len(order)} unique tiles, lua {len(text)} bytes, mean err {total_err/max(1,alpha.sum()):.2f}")
+
+def encode_tile(idx):
+    out = bytearray()
+    for plane_pair in ((0, 1), (2, 3)):
+        for row in range(8):
+            for p in plane_pair:
+                b = 0
+                for col in range(8):
+                    if (int(idx[row, col]) >> p) & 1: b |= 1 << (7 - col)
+                out.append(b)
+    return bytes(out)
+
+if __name__ == "__main__":
+    here = os.path.dirname(os.path.abspath(__file__))
+    sys.path.insert(0, here)
+    import scenes
+    for n in [int(x) for x in sys.argv[1:]]:
+        scenes.SCENES[n]()  # populates SKY
+        run(n, os.path.join(here, "..", "render", f"stage{n}.png"), os.path.join(here, "..", "toy"), scenes.SKY[n])
