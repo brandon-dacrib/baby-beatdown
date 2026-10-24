@@ -50,7 +50,9 @@ Not yet done or unverified:
 - 2-player mode (deferred by request; one controller only)
 - the hip-hop rooftop track and the character voices have not been heard by a person yet
 - Teddy and Pip are placeholder names
-- no SNES cartridge export (the toy uses strings and tables; it runs in the Studio's Lua mode only)
+- no SNES cartridge export: `snes_check` rejects the toy for structural reasons (function overrides, record
+  tables, strings, run-time sprite rendering, 242 KB WRAM). `PORT.md` groups the ~420 findings by cause and
+  lays out the rebuild; it is a second toy, not an edit of this one
 
 ## Working rules
 
