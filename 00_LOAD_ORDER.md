@@ -69,3 +69,8 @@ in the order sent. One main.lua write arrived with a stray backtick prepended (p
 31. react.lua   -- hit reactions, voices + final-blow sounds, projectile clash, win celebrations
 32. faces.lua   -- expressions, sole lines + landing dust, the beach ball (see ../STYLES.md)
 33. terrier.lua -- Arlo's terrier head: pricked tan-lined ears, crown tufts, bushy brows, scruffy beard (portrait: tools/faces.py arlo)
+34. arcade.lua  -- 7-fight arcade ladder for a human player + per-character ending sequence (ENDING table)
+
+Sources note (2026-10-24): sources/songs/rooftop.json is now the hip-hop version (92 BPM, swing 22, boom-bap kit,
+bass, piano stabs, pluck melody); restore songs with write_song(name, json) for each file in sources/songs.
+Restore order is the numbered list above; every file in toy/ is the authoritative copy of what runs in the Studio.

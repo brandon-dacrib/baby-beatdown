@@ -20,3 +20,15 @@ Voices: each baby has a phrase on specials, a wail with its own impact sound on 
 Celebrations: Brandon pumps and jumps, Arlo sits and hops, Dawn grooms, Chris does sumo stomps, Isaac flaps,
 Teddy flexes, Pip bounces, Blue bows and spins.
 Projectiles cancel each other mid-air ("CLASH!"). A beach ball lives in the Yard, Farm and Garden stages.
+
+## Arcade ladder and endings (arcade.lua)
+A human match starts a 7-fight ladder against every other baby on their own stage ("MATCH n OF 7").
+Lose once and it is back to the title. Beat all seven and the champion gets a big win sequence on their
+home stage: fireworks, confetti, their celebration moves and voice, a four-line story (ENDING table in
+arcade.lua), then THE END. Any button or ~20 s returns to the title.
+
+## Hands
+cps.lua orients every hand along its forearm: bent arms (guard, chamber) are closed fists with the knuckles
+on the leading side, extended arms open into the species' fingers, claws, trotter, wingtip or pincer.
+Lifted feet point along the shin. Arlo is a terrier (terrier.lua: pricked tan-lined ears, crown tufts,
+bushy brows, beard; portrait in tools/faces.py).
