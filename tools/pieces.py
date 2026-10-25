@@ -90,8 +90,8 @@ arr("PC_START", pc_start, 1, len(pcx)); arr("PC_N", pc_n, 0, 32)
 arr("PC_X", pcx, 0, 56); arr("PC_Y", pcy, 0, 56); arr("PC_BIG", pcb, 0, 1); arr("PC_TILE", pct, 0, 95)
 # upload_window: one plain copy loop per (fighter, pose) so the cart can skip it while the pose is unchanged.
 # word n of a window maps to OBJ word WBASE_i + (n // 128) * 256 + n % 128 (8 of the 16 tiles of each row).
-out.append("WBASE_1 = 0x2000 + 4 * 256")
-out.append("WBASE_2 = 0x2000 + 4 * 256 + 128")
+out.append("local WBASE_1 = 9216   -- 0x2000 + 4 * 256: OBJ tile row 4, columns 0..7")
+out.append("local WBASE_2 = 9344   -- + 128: columns 8..15")
 out.append("function upload_window(i)")
 first = True
 for slot in (1, 2):
