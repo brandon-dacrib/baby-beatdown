@@ -6,6 +6,18 @@ feet at y=64, centre x=32)."""
 import json
 g = json.load(open("cart/gamedata.json")); idx = json.load(open("cart/sources/index.json"))
 cells = {int(k): v for k, v in idx["1"]["cells"].items()}   # same layout for every character
+PUNCHY = {3,12,13,15,48,49,50,51,52,53,59,60,61,64,65,66,10}
+KICKY = {4,11,14,16,17,54,55,56,57,58,62,63}
+def cell_of(p):
+    if p in cells: return cells[p]
+    if p in KICKY: return cells[4]
+    if p in PUNCHY: return cells[3]
+    if p in (5,6,8): return cells[0]        # crouch, jump, block -> idle (until streaming exists)
+    if p in (7,9): return cells[0]           # hit, ko -> idle + flash
+    if p in (67,68,69): return cells.get(7, cells[0])   # reactions -> hit, or idle + flash
+    if p in (2,): return cells[1]            # walk2 -> walk1
+    if p >= 70: return cells[0]              # celebrations -> idle
+    return cells[0]
 A = g["ATTACKS"]; ART = g["ART"]; STYLE = g["STYLE"]; SUPER = g["SUPER"]
 # ---- move ids
 names = sorted(n for n in A if n not in ("punch",))          # 'punch' is an alias of jab
@@ -31,7 +43,7 @@ boxsets = [(0,0,0,0), (1,2,3,1), (4,5,6,2), (8,9,10,4), (0,0,7,3), (1,2,3,1)]
 BS_STAND, BS_CROUCH, BS_AIR, BS_KO, BS_HIT = 1, 2, 3, 4, 5
 # ---- scripts: 4-byte keyframes [hold, flags, cell, boxset]; flags bit7 = last, bit0 = loop, bit1 = active window
 P = g["POSE"]
-def cell(pose): return cells[pose]
+def cell(pose): return cell_of(pose)
 scripts = {}   # name -> list of keyframes
 def S(name, frames): scripts[name] = frames
 S("idle",   [(8,0,cell(0),BS_STAND),(8,0,cell(0),BS_STAND),(8,0x81,cell(0),BS_STAND)])   # per-char idle2 cell patched at runtime
@@ -90,15 +102,15 @@ arr("M_HITS", [A[n].get("hits", 1) for n in names], 1, 4)
 arr("M_SCRIPT", [sid["atk_" + n] for n in names], 1, len(script_names))
 w("")
 for i, k in enumerate(("CX", "CY", "HW", "HH")):
-    arr(f"ABOX_{k}", [0] + [b[i] for b in aboxes], -64, 64)
-    arr(f"HBOX_{k}", [b[i] for b in hurt], -64, 64)
-    arr(f"PBOX_{k}", [b[i] for b in push], -64, 64)
+    arr(f"ABOX_{k}", [b[i] for b in aboxes], -64, 64)
+    arr(f"HBOX_{k}", [b[i] for b in hurt[1:]], -64, 64)
+    arr(f"PBOX_{k}", [b[i] for b in push[1:]], -64, 64)
 for i, k in enumerate(("HEAD", "BODY", "LEGS", "PUSH")):
-    arr(f"BS_{k}", [b[i] for b in boxsets], 0, 15)
+    arr(f"BS_{k}", [b[i] for b in boxsets[1:]], 0, 15)
 w(f"BS_STAND, BS_CROUCH, BS_AIR, BS_KO, BS_HIT = {BS_STAND}, {BS_CROUCH}, {BS_AIR}, {BS_KO}, {BS_HIT}")
 w("")
 for n in script_names: w(f"SC_{n.upper()} = {sid[n]}")
-arr("SCRIPT_START", start, 0, len(flat) // 4 + 1)
+arr("SCRIPT_START", start[1:], 1, len(flat) // 4 + 1)
 arr("SCRIPT_DATA", flat, 0, 255)
 w(f"N_KEYS = {len(flat) // 4}")
 w("")

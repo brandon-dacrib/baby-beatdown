@@ -1,14 +1,18 @@
 -- BABY BEATDOWN CART -- main.lua: engine in the ppu SNES dialect, built on the SF2 Turbo formats
 -- (reference/SF2T_SNES_ARCHITECTURE.md). data.lua (generated) holds every table; this file only has code.
 -- Units: positions and velocities in 1/16 px. Origin of a fighter = feet centre. Facing: 1 right, -1 left.
----@snes fixed 0
 mode = 1
 brightness = 15
 
 -- ---------------------------------------------------------------- VRAM layout (word addresses)
-OBJ_BASE = 0x6000           -- sprite window: slot 0 at tiles 0..63 (64x64 = 8x8 tiles), slot 1 at 64..127
-STAGE_CHAR, STAGE_MAP = 0x0000, 0x3800
-HUD_CHAR, HUD_MAP = 0x5000, 0x4800
+-- 0x0000 stage tiles | 0x1000 HUD font | 0x1800 stage map | 0x1C00 HUD map | 0x2000.. OBJ: 8 poses x 2 fighters
+local STAGE = dma("stage", { char = 0x0000, pal = 0 })   -- 16-tile sheet; the map is built in init()
+local STAGE_MAP = 0x1800
+local FONT = dma("font", { char = 0x1000, pal = 16 })
+local P1SRC = dma("char1", { char = 0x2000, pal = 0 })
+local P2SRC = dma("char2", { char = P1SRC.next_char, pal = 1 })
+local HUD_MAP = 0x1C00
+local HUD_ATTR = 0x2400          -- palette 1, high priority
 FLOOR = 176                 -- screen y of the feet
 HP_MAX, METER_MAX = 96, 96
 N_PLAYERS = 2
@@ -83,6 +87,7 @@ PREV_X = 0
 PREV_B = 0
 ---@snes range PREV_A 0 1
 PREV_A = 0
+---@snes vblank 7168 7423
 ---@snes range FRAME 0 65535
 FRAME = 0
 ---@snes range CLOCK 0 99
@@ -92,7 +97,7 @@ RNG = 12345
 -- CPU brain
 ---@snes range AI_T 0 63
 AI_T = 0
----@snes range AI_PLAN 0 9
+---@snes range AI_PLAN 0 10
 AI_PLAN = 0
 
 function rnd8()
@@ -425,28 +430,77 @@ end
 -- ---------------------------------------------------------------- drawing
 -- Each slot owns a 64x64 window of 64 tiles (8x8 tiles, 16 per row => tiles base, base+1.. base+7, base+16..).
 -- stream_cell copies one 64x64 cell (2 KB) of the character sheet into the window; see sprites.lua.
+-- cell k of a 64x64 OBJ sheet: two cells per 16-tile band of 8 rows -> tile (k//2)*128 + (k%2)*8
 function draw_fighters()
+  obj[0].tile = P1SRC.tile + (FCELL[1] // 2) * 128 + (FCELL[1] % 2) * 8
+  obj[1].tile = P2SRC.tile + (FCELL[2] // 2) * 128 + (FCELL[2] % 2) * 8
+  obj[0].pal = P1SRC.pal
+  obj[1].pal = P2SRC.pal
   for i = 1, 2 do
-    if FSHOWN[i] ~= FCELL[i] then stream_cell(i, FCHAR[i], FCELL[i]); FSHOWN[i] = FCELL[i] end
-    local o = obj[i - 1]
-    o.tile = (i - 1) * 8 + 0        -- window i: tiles rows 0..7 (slot 0) or 8..15 (slot 1) -> see sprites.lua layout
-    o.pal = i - 1
-    o.large = true
-    o.flip_x = (FFACE[i] == -1)
-    o.x = FX[i] // 16 - 32
-    o.y = FLOOR + FY[i] // 16 - 64
-    o.prio = 2
-    o.on = not (FFLASH[i] > 0 and FFLASH[i] % 2 == 1)
+    obj[i - 1].large = true
+    obj[i - 1].flip_x = (FFACE[i] == -1)
+    obj[i - 1].x = FX[i] // 16 - 32
+    obj[i - 1].y = FLOOR + FY[i] // 16 - 64
+    obj[i - 1].prio = 2
+    obj[i - 1].on = not (FFLASH[i] > 0 and FFLASH[i] % 2 == 1)
   end
 end
 
+-- ---------------------------------------------------------------- HUD (font glyphs: A=1..Z=26, 0-9 = 27..36)
+function hud_glyph(col, row, g)
+  vram[HUD_MAP + row * 32 + col] = g | HUD_ATTR
+end
+function setup_hud()
+  bg[2].char_base = FONT.char
+  bg[2].map_base = HUD_MAP
+  screen.main.bg2 = true
+  for i = 1, 8 do
+    hud_glyph(i, 2, CH_NAME[(FCHAR[1] - 1) * 8 + i])
+    hud_glyph(23 + i, 2, CH_NAME[(FCHAR[2] - 1) * 8 + i])
+  end
+end
+function draw_hud()
+  local h1 = (FHP[1] + 7) // 8
+  local h2 = (FHP[2] + 7) // 8
+  for i = 0, 11 do
+    local g1 = 44
+    if i < h1 then g1 = 43 end
+    local g2 = 44
+    if i < h2 then g2 = 43 end
+    hud_glyph(12 - i, 1, g1)
+    hud_glyph(19 + i, 1, g2)
+  end
+  local m1 = FMETER[1] // 16
+  local m2 = FMETER[2] // 16
+  for i = 0, 5 do
+    local g1 = 46
+    if i < m1 then g1 = 45 end
+    local g2 = 46
+    if i < m2 then g2 = 45 end
+    hud_glyph(12 - i, 3, g1)
+    hud_glyph(19 + i, 3, g2)
+  end
+  hud_glyph(15, 2, 27 + CLOCK // 10)
+  hud_glyph(16, 2, 27 + CLOCK % 10)
+end
+
 function init()
+  bg[1].char_base = STAGE.char
+  bg[1].map_base = STAGE_MAP
+  -- sky rows 0..21 tile 1, ground line row 22 tile 2, floor rows 23..27 tile 3 (stage sheet tiles 0..15)
+  for row = 0, 27 do
+    for col = 0, 31 do
+      local tile = 1
+      if row == 22 then tile = 2 elseif row > 22 then tile = 3 end
+      vram[STAGE_MAP + row * 32 + col] = tile
+    end
+  end
   screen.main.bg1 = true
   screen.main.obj = true
-  obj_size_large = 64
+  obj.char_base = P1SRC.char
+  obj.size_sel = 2             -- small 8x8, large 64x64
   set_script(1, SC_IDLE)
   set_script(2, SC_IDLE)
-  setup_sprites()
   setup_hud()
 end
 
@@ -457,6 +511,7 @@ function frame(t, f)
   update_fighter(1, 2)
   update_fighter(2, 1)
   separate()
+  if FRAME % 60 == 0 and CLOCK > 0 then CLOCK = CLOCK - 1 end
   draw_fighters()
   draw_hud()
 end
