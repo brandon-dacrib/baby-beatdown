@@ -69,54 +69,62 @@ PC_BIG = { 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 
 PC_TILE = { 0, 2, 4, 6, 32, 34, 36, 38, 39, 54, 55, 0, 2, 4, 6, 32, 34, 36, 38, 39, 54, 55, 64, 65, 0, 2, 4, 6, 32, 34, 36, 37, 38, 39, 52, 0, 2, 4, 6, 32, 34, 36, 38, 64, 65, 66, 67, 68, 69, 70, 0, 2, 4, 6, 32, 34, 36, 38, 39, 54, 55, 64, 65, 66, 67, 68, 69, 70, 0, 2, 4, 6, 32, 34, 36, 37, 38, 39, 0, 2, 4, 6, 32, 34, 36, 38, 64, 65, 66, 67, 68, 0, 2, 4, 6, 32, 34, 36, 38, 39, 54, 55, 0, 2, 4, 6, 32, 34, 36, 38, 39, 54, 0, 2, 4, 6, 32, 34, 36, 37, 0, 2, 4, 6, 32, 34, 36, 38, 64, 65, 66, 67, 68, 69, 0, 2, 4, 6, 32, 34, 36, 37, 38, 39, 52, 53, 54, 55, 0, 2, 4, 6, 32, 34, 36, 38, 64, 65, 66, 67, 68, 69, 70, 71, 0, 2, 4, 6, 32, 34, 36, 38, 64, 65, 66, 67, 68, 69, 70, 71, 0, 2, 4, 6, 32, 34, 36, 38, 39, 54, 55, 64, 65, 66, 67, 0, 2, 4, 6, 32, 34, 36, 38, 64, 65, 66, 67, 68, 69, 70, 71, 0, 2, 4, 6, 32, 34, 36, 38, 39, 54, 55, 64, 65, 66, 67, 68, 69, 70, 71, 0, 2, 4, 6, 32, 34, 35, 36, 37, 38, 39, 50, 51, 0, 2, 4, 6, 32, 34, 36, 38, 64, 65, 66, 67, 68, 69, 70, 0, 2, 4, 6, 32, 34, 36, 38, 64, 65, 66, 67, 0, 2, 4, 6, 32, 34, 36, 38, 39, 54, 55, 64, 0, 2, 4, 6, 32, 34, 36, 37, 0, 2, 4, 6, 32, 34, 36, 38, 64, 65, 66, 67, 68, 69, 70, 71, 0, 2, 4, 6, 32, 34, 36, 38, 39, 54, 55, 64, 65, 66, 67 }
 local WBASE_1 = 9216   -- 0x2000 + 4 * 256: OBJ tile row 4, columns 0..7
 local WBASE_2 = 9344   -- + 128: columns 8..15
-function upload_window(i)
-  if i == 1 and FCELL[i] == 0 then
+function upload_window_1()
+  local k = FCELL[1]
+  if k == 0 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_0[r * 128 + c + 1] end end
-  elseif i == 1 and FCELL[i] == 1 then
+  elseif k == 1 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_1[r * 128 + c + 1] end end
-  elseif i == 1 and FCELL[i] == 2 then
+  elseif k == 2 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_2[r * 128 + c + 1] end end
-  elseif i == 1 and FCELL[i] == 3 then
+  elseif k == 3 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_3[r * 128 + c + 1] end end
-  elseif i == 1 and FCELL[i] == 4 then
+  elseif k == 4 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_4[r * 128 + c + 1] end end
-  elseif i == 1 and FCELL[i] == 5 then
+  elseif k == 5 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_5[r * 128 + c + 1] end end
-  elseif i == 1 and FCELL[i] == 6 then
+  elseif k == 6 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_6[r * 128 + c + 1] end end
-  elseif i == 1 and FCELL[i] == 7 then
+  elseif k == 7 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_7[r * 128 + c + 1] end end
-  elseif i == 1 and FCELL[i] == 8 then
+  elseif k == 8 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_8[r * 128 + c + 1] end end
-  elseif i == 1 and FCELL[i] == 9 then
+  elseif k == 9 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_9[r * 128 + c + 1] end end
-  elseif i == 1 and FCELL[i] == 10 then
+  elseif k == 10 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_10[r * 128 + c + 1] end end
-  elseif i == 1 and FCELL[i] == 11 then
+  elseif k == 11 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_11[r * 128 + c + 1] end end
-  elseif i == 2 and FCELL[i] == 0 then
+  end
+end
+function upload_window_2()
+  local k = FCELL[2]
+  if k == 0 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_0[r * 128 + c + 1] end end
-  elseif i == 2 and FCELL[i] == 1 then
+  elseif k == 1 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_1[r * 128 + c + 1] end end
-  elseif i == 2 and FCELL[i] == 2 then
+  elseif k == 2 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_2[r * 128 + c + 1] end end
-  elseif i == 2 and FCELL[i] == 3 then
+  elseif k == 3 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_3[r * 128 + c + 1] end end
-  elseif i == 2 and FCELL[i] == 4 then
+  elseif k == 4 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_4[r * 128 + c + 1] end end
-  elseif i == 2 and FCELL[i] == 5 then
+  elseif k == 5 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_5[r * 128 + c + 1] end end
-  elseif i == 2 and FCELL[i] == 6 then
+  elseif k == 6 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_6[r * 128 + c + 1] end end
-  elseif i == 2 and FCELL[i] == 7 then
+  elseif k == 7 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_7[r * 128 + c + 1] end end
-  elseif i == 2 and FCELL[i] == 8 then
+  elseif k == 8 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_8[r * 128 + c + 1] end end
-  elseif i == 2 and FCELL[i] == 9 then
+  elseif k == 9 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_9[r * 128 + c + 1] end end
-  elseif i == 2 and FCELL[i] == 10 then
+  elseif k == 10 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_10[r * 128 + c + 1] end end
-  elseif i == 2 and FCELL[i] == 11 then
+  elseif k == 11 then
     for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_11[r * 128 + c + 1] end end
   end
+end
+function upload_window(i)
+  if i == 1 then upload_window_1() else upload_window_2() end
 end

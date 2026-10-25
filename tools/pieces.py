@@ -92,13 +92,13 @@ arr("PC_X", pcx, 0, 56); arr("PC_Y", pcy, 0, 56); arr("PC_BIG", pcb, 0, 1); arr(
 # word n of a window maps to OBJ word WBASE_i + (n // 128) * 256 + n % 128 (8 of the 16 tiles of each row).
 out.append("local WBASE_1 = 9216   -- 0x2000 + 4 * 256: OBJ tile row 4, columns 0..7")
 out.append("local WBASE_2 = 9344   -- + 128: columns 8..15")
-out.append("function upload_window(i)")
-first = True
 for slot in (1, 2):
+    out.append(f"function upload_window_{slot}()")
+    out.append(f"  local k = FCELL[{slot}]")
     for k in range(len(POSES)):
-        out.append(f"  {'if' if first else 'elseif'} i == {slot} and FCELL[i] == {k} then")
+        out.append(f"  {'if' if k == 0 else 'elseif'} k == {k} then")
         out.append(f"    for r = 0, {ROWS - 1} do for c = 0, 127 do vram[WBASE_{slot} + r * 256 + c] = SPR_W_{slot}_{k}[r * 128 + c + 1] end end")
-        first = False
-out.append("  end\nend")
+    out.append("  end\nend")
+out.append("function upload_window(i)\n  if i == 1 then upload_window_1() else upload_window_2() end\nend")
 open(OUT, "w").write("\n".join(out) + "\n")
 print(f"slots {chars}: {len(pcx)} pieces, max per pose {max(pc_n)}, {len(POSES)*len(chars)} windows x 768 words -> {OUT}")
