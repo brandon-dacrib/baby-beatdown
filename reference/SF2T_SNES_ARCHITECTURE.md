@@ -101,3 +101,83 @@ read them straight from ROM. The source bank set per character spans two or thre
 5. **Per-stage HDMA as constant tables** (80 B each, indexed by stage) — `---@snes hdma-bake`.
 6. **Budget numbers to aim at**: ≤ 3.3 KB tiles/frame, ≤ 26 DMA entries/frame, 0x220 B OAM, one sound
    command per frame, 12 KB character block in WRAM per fighter (ours can be far smaller).
+
+---
+
+# Part 2 (2026-10-25): character data, hit boxes, animation scripts, stage packing
+
+All of this was verified by re-rendering from the decoded data: Ryu's idle pose with its boxes
+overlaid, Zangief's first frame, Ryu's castle and Guile's air base (`~/Downloads/sf2t-disasm/`:
+`sprite2.py`, `stage.py`, `dec.py`, `*.png`).
+
+## Per-fighter pointer set (loaded at fighter init from the character id, 0–11)
+| field | from | points at |
+|---|---|---|
+| frame-stream list | bank $C4 word table | per-frame VRAM DMA chunk lists (Part 1) |
+| animation scripts | bank $C3 word table | per-character script table |
+| box-set records | bank $C3 word table (+$1A) | 16-byte records, one per "pose box set" |
+| box lists | bank $C4 word table (+$1C) | per-character hurt/attack/push box lists |
+| OAM piece lists | banks $CE/$CF, copied to WRAM ($7E:5000 P1, $7E:7500 P2) | per-frame sprite assembly |
+| palette | bank $CF via a word table | 16 colours, alt palette at +$40 |
+
+Ryu's WRAM block is 7.1 KB; the copy is a flat 9.5 KB (0x2500) regardless of character.
+
+## Animation script = 4-byte keyframes
+`[frames to hold][flags: $80 = last][sprite frame id][box-set id]`
+
+Ryu idle: frames 0,1,0,2 held 6,5,6,5 frames, box set 1 throughout. The interpreter decrements the
+hold counter each frame; on zero it advances 4 bytes, requests the new frame's tiles (Part 1 streaming),
+resolves the OAM piece list, and copies the 16-byte box-set record into the fighter record. Moves are
+entered by handing the interpreter a script number, which also drives the per-move velocity tables.
+
+## OAM piece list (one per sprite frame)
+`[count]` then `count × [x][y][tile][attr]`, x/y signed bytes relative to the fighter origin, `attr`
+bit 0 = 16x16 (else 8x8), bits 6–7 = flips, palette bits OR'd in. Facing is applied by negating x
+and subtracting the piece width. Ryu's idle is 13 pieces, mostly 16x16. The tile numbers index the
+per-player VRAM window ($7000 P1, $7800 P2 in word addresses), which is why the streamed chunks per
+frame are laid out to match the 16-tiles-per-row OAM numbering.
+
+## Boxes
+Box-set record (16 bytes): `[hurt0 idx][hurt1 idx][hurt2 idx][hurt3 idx][attack idx][push idx][flags…]`.
+Each index selects an entry in that character's box lists: hurt and push boxes are 4 bytes
+`[cx][cy][half w][half h]`, attack boxes 12 bytes `[cx][cy][half w][half h][damage][…][hit kind][…][sound][fx]`.
+cx is signed and facing-flipped, cy is measured upward from the feet. Ryu standing: head box centre
+(−2, 69) ±7, body (3, 45) ±(11, 18), legs (3, 12) ±(11, 14), push box (0, 35) ±(9, 34).
+
+Overlap test (bank $C0, $5C62): world x = fighter.x ± box.cx, then
+`|x1 − x2| ≤ w1 + w2` done as `(dx + s) ≤ 2s`, same for y. Push-box separation runs every frame between
+the two fighters; attack-vs-hurt runs per hurt slot in order head, body, legs, extra.
+
+## Stage graphics
+- **Load lists** (bank $C0, table at $9B43, 7-byte entries `[size16][vram16][src16][bank]`,
+  terminator has bit 0 set). A bank byte with bits 6–7 clear means "compressed": the real bank is
+  `byte | $C0`, the data is decompressed into bank $7F and DMA'd from there. Per-stage list = $10 + stage;
+  per-stage palette set = `$C0:D0B9[stage]`, resolved through a word table at `$C0:F1B3` into
+  `[count][src16 in $CF][first colour]` entries.
+- **Compressor** (`$C0:0FBC`): output is produced 16 bytes at a time. A block is either
+  `$15` + 16 literal bytes, or `[fill byte][mask16]` followed by one literal byte for every set mask bit
+  (MSB first); clear bits emit the fill byte. Stage tile sets compress to 70–77 %.
+  It is a tile-oriented RLE: cheap to decode, no back-references, decodes in a straight line.
+- **Stage map** (bank $CD): three-level metatiles. 16x16 metatile = 4 tilemap words at `$CD:0000+m`;
+  32x32 block = 4 metatile offsets at `$CD:B000+b`; 256x32 strip = 8 block offsets at `$CD:9000+idx*16`;
+  a 32x32-tile screen = 7 strips (224 px) + flag byte carrying strip index bit 8; a stage = 6 screens,
+  48 bytes at `$CD:F800+stage*48`. The builder expands this into bank $7F, from where columns are DMA'd
+  as the camera scrolls (BG1 and BG2 are 64x32 tilemaps at $3800 and $4000, char base $0000, Mode 1).
+- Bank $C2 holds per-stage **animation DMA lists** (5-byte `[vmain|size][vram16][src16]`) consumed
+  through the 64-entry ring with the per-frame budget: crowd and water animation as tilemap patches.
+
+## What to copy into Baby Beatdown
+1. **Keyframe scripts as 4-byte records** `[hold][flags][frame][boxset]` in constant integer arrays,
+   one script table per character; a 10-line interpreter replaces the layered `update_fighter` chain.
+2. **Boxes as indices, not literals.** A box-set record per pose referencing per-character box lists
+   keeps the data tiny (Ryu: ~130 box-set records, ~60 hurt boxes, ~40 attack boxes) and makes the
+   overlap test a fixed-shape loop over four hurt slots.
+3. **Centre/half-extent boxes and the `(dx+s) ≤ 2s` test**: integer only, no multiplies, branch-free
+   except the facing flip.
+4. **OAM piece lists per frame** (count + 4 bytes/piece) with 16x16 pieces: Ryu is 13 pieces, so two
+   fighters fit under the 32-sprites-per-line limit with room for projectiles.
+5. **Stage maps as metatile hierarchies** (16 → 32 → 256x32 → screen): a 768 px stage costs under 2 KB
+   of map data plus a few KB of compressed tiles, decoded once at round start into a WRAM buffer that
+   feeds column DMAs during scroll.
+6. **A 16-byte-block fill+mask compressor** is enough for tiles and is trivial to write in the cart
+   dialect if VRAM budget ever forces compression; otherwise store tiles raw as SF2T does for sprites.
