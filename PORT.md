@@ -80,13 +80,18 @@ documented in `reference/SF2T_SNES_ARCHITECTURE.md`:
 - `cart/main.lua` is the engine: two fighters as parallel integer arrays, a 10-line keyframe interpreter,
   the `(dx+s) <= 2s` overlap test over four hurt slots, push-box separation, pad reading with press edges,
   the CPU brain, HUD through a 256-word VBlank window. `tools/run_cart.lua` runs it under plain Lua.
-- Sprites: `tools/pose_sheets.py --core` turns the pose dumps into 64x64 OBJ sheets. **The OBJ region holds
-  512 tiles = 8 cells of 64x64 for both fighters together**, so v1 shows 4 poses each (idle, walk, punch,
-  kick); every other pose falls back onto those. SF2T-style per-frame streaming needs ROM-resident tile data
-  fed through the 1,536-word VBlank window, which the compiler does not expose yet (arrays are WRAM).
+- Sprites, SF2T style: `tools/pieces.py` packs each of the 12 core poses into a 48-tile window
+  (6 rows x 8 columns of OBJ tiles) as 16x16 and 8x8 pieces and emits `cart/sprites.lua`: one 768-word
+  array per (fighter, pose) plus flat piece lists `PC_X/PC_Y/PC_BIG/PC_TILE`. The two fighter windows sit
+  side by side in OBJ tile rows 4..9 (tiles 64..159), together exactly the 1,536-word
+  `---@snes vblank` region; `upload_window` copies a pose's 768 words when the shown cell changes and
+  `draw_fighters` places up to 24 OBJs per fighter from the piece list. The font lives in OBJ tiles 0..48
+  and the HUD is sprites (OAM 48..101), because the cart allows one VBlank region. Measured: worst pose
+  46 tiles, 19 pieces; 16x16 dedup across poses is only ~15 % (the painter shades by neighbourhood).
+  The pose data is for a fixed pair (Brandon, Arlo) until constant arrays are known to live in ROM.
 - In the Studio (toy "baby-beatdown-cart", one merged `main.lua` because files run in creation order):
-  Lua mode plays Brandon vs CPU Arlo with HUD; `snes_check` reports **0 errors**, one warning: the slowest
-  path takes ~1.4 video frames (~43 updates/s). `tools/studio.py` drives the Studio over plain HTTP
+  Lua mode plays Brandon vs CPU Arlo with all 12 core poses streaming; the 4-pose resident build reported
+  **0 errors** and a 1.2-frame slowest path; the streamed build's verdict is in the SNES panel. `tools/studio.py` drives the Studio over plain HTTP
   (the MCP endpoint is per Studio tab; `snes_check` over HTTP hits the 100 s gateway timeout, read the
   SNES panel instead).
 
