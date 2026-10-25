@@ -98,5 +98,12 @@ documented in `reference/SF2T_SNES_ARCHITECTURE.md`:
   (the MCP endpoint is per Studio tab; `snes_check` over HTTP hits the 100 s gateway timeout, read the
   SNES panel instead).
 
+- **Compiler ceiling (2026-10-25 evening):** the in-browser SNES compiler finishes the 4-pose streamed build
+  (8 arrays x 768 words, 6,144 entries) in ~5 minutes, but neither the 8-pose build (12,288 entries) nor the
+  12-pose build (18,432 entries) returned within 20+ minutes; the tab wedges and must be reloaded. Until the
+  compiler handles larger constant tables (or offers ROM-resident data for VBlank copies), the cart is
+  4 streamed poses per fighter. Worth raising with the ppu.toys author; it is the one thing between this
+  build and the full roster.
+
 Next: Export to ROM and run it in an emulator; reduce the slow path; a block/crouch/jump pose budget
 (16x16 piece lists to trim empty tiles); stages as `bg` sources; audio.
