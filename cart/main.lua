@@ -1,6 +1,7 @@
 -- BABY BEATDOWN CART -- main.lua: engine in the ppu SNES dialect, built on the SF2 Turbo formats
 -- (reference/SF2T_SNES_ARCHITECTURE.md). data.lua (generated) holds every table; this file only has code.
 -- Units: positions and velocities in 1/16 px. Origin of a fighter = feet centre. Facing: 1 right, -1 left.
+---@snes frames 2
 mode = 1
 brightness = 15
 
@@ -434,20 +435,6 @@ end
 -- ---------------------------------------------------------------- sprites (SF2T: per-pose tile window + piece list)
 -- Fighter i owns window columns 8*(i-1)..8*(i-1)+7 of OBJ tile rows 0..5. upload_window copies the pose's
 -- 768 words when the shown cell changes; only that update pays for it.
-function upload_window(i)
-  local k = FCELL[i]
-  local col0 = (i - 1) * 8
-  for r = 0, SPR_ROWS - 1 do
-    for c = 0, SPR_COLS - 1 do
-      local dst = OBJ_BASE + ((r + WIN_ROW0) * 16 + col0 + c) * 16
-      local src = (r * SPR_COLS + c) * 16
-      for w = 0, 15 do
-        vram[dst + w] = pose_word(i, k, src + w + 1)
-      end
-    end
-  end
-end
-
 function draw_fighters()
   for i = 1, 2 do
     if FSHOWN[i] ~= FCELL[i] then upload_window(i); FSHOWN[i] = FCELL[i] end
@@ -550,13 +537,14 @@ function init()
 end
 
 function frame(t, f)
+  if f % 2 == 1 then return end   -- 30 Hz: the cartridge never sees odd f
   FRAME = FRAME + 1
   read_pads()
   cpu_input(2, 1)
   update_fighter(1, 2)
   update_fighter(2, 1)
   separate()
-  if FRAME % 60 == 0 and CLOCK > 0 then CLOCK = CLOCK - 1 end
+  if FRAME % 30 == 0 and CLOCK > 0 then CLOCK = CLOCK - 1 end
   draw_fighters()
   draw_hud()
 end

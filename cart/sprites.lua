@@ -67,32 +67,56 @@ PC_Y = { 0, 16, 16, 32, 32, 48, 48, 0, 8, 24, 56, 0, 16, 16, 32, 32, 48, 48, 0, 
 PC_BIG = { 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 }
 ---@snes array PC_TILE 321 0 95
 PC_TILE = { 0, 2, 4, 6, 32, 34, 36, 38, 39, 54, 55, 0, 2, 4, 6, 32, 34, 36, 38, 39, 54, 55, 64, 65, 0, 2, 4, 6, 32, 34, 36, 37, 38, 39, 52, 0, 2, 4, 6, 32, 34, 36, 38, 64, 65, 66, 67, 68, 69, 70, 0, 2, 4, 6, 32, 34, 36, 38, 39, 54, 55, 64, 65, 66, 67, 68, 69, 70, 0, 2, 4, 6, 32, 34, 36, 37, 38, 39, 0, 2, 4, 6, 32, 34, 36, 38, 64, 65, 66, 67, 68, 0, 2, 4, 6, 32, 34, 36, 38, 39, 54, 55, 0, 2, 4, 6, 32, 34, 36, 38, 39, 54, 0, 2, 4, 6, 32, 34, 36, 37, 0, 2, 4, 6, 32, 34, 36, 38, 64, 65, 66, 67, 68, 69, 0, 2, 4, 6, 32, 34, 36, 37, 38, 39, 52, 53, 54, 55, 0, 2, 4, 6, 32, 34, 36, 38, 64, 65, 66, 67, 68, 69, 70, 71, 0, 2, 4, 6, 32, 34, 36, 38, 64, 65, 66, 67, 68, 69, 70, 71, 0, 2, 4, 6, 32, 34, 36, 38, 39, 54, 55, 64, 65, 66, 67, 0, 2, 4, 6, 32, 34, 36, 38, 64, 65, 66, 67, 68, 69, 70, 71, 0, 2, 4, 6, 32, 34, 36, 38, 39, 54, 55, 64, 65, 66, 67, 68, 69, 70, 71, 0, 2, 4, 6, 32, 34, 35, 36, 37, 38, 39, 50, 51, 0, 2, 4, 6, 32, 34, 36, 38, 64, 65, 66, 67, 68, 69, 70, 0, 2, 4, 6, 32, 34, 36, 38, 64, 65, 66, 67, 0, 2, 4, 6, 32, 34, 36, 38, 39, 54, 55, 64, 0, 2, 4, 6, 32, 34, 36, 37, 0, 2, 4, 6, 32, 34, 36, 38, 64, 65, 66, 67, 68, 69, 70, 71, 0, 2, 4, 6, 32, 34, 36, 38, 39, 54, 55, 64, 65, 66, 67 }
-
-function pose_word(i, k, n)
-  if i == 1 and k == 0 then return SPR_W_1_0[n]
-  elseif i == 1 and k == 1 then return SPR_W_1_1[n]
-  elseif i == 1 and k == 2 then return SPR_W_1_2[n]
-  elseif i == 1 and k == 3 then return SPR_W_1_3[n]
-  elseif i == 1 and k == 4 then return SPR_W_1_4[n]
-  elseif i == 1 and k == 5 then return SPR_W_1_5[n]
-  elseif i == 1 and k == 6 then return SPR_W_1_6[n]
-  elseif i == 1 and k == 7 then return SPR_W_1_7[n]
-  elseif i == 1 and k == 8 then return SPR_W_1_8[n]
-  elseif i == 1 and k == 9 then return SPR_W_1_9[n]
-  elseif i == 1 and k == 10 then return SPR_W_1_10[n]
-  elseif i == 1 and k == 11 then return SPR_W_1_11[n]
-  elseif i == 2 and k == 0 then return SPR_W_2_0[n]
-  elseif i == 2 and k == 1 then return SPR_W_2_1[n]
-  elseif i == 2 and k == 2 then return SPR_W_2_2[n]
-  elseif i == 2 and k == 3 then return SPR_W_2_3[n]
-  elseif i == 2 and k == 4 then return SPR_W_2_4[n]
-  elseif i == 2 and k == 5 then return SPR_W_2_5[n]
-  elseif i == 2 and k == 6 then return SPR_W_2_6[n]
-  elseif i == 2 and k == 7 then return SPR_W_2_7[n]
-  elseif i == 2 and k == 8 then return SPR_W_2_8[n]
-  elseif i == 2 and k == 9 then return SPR_W_2_9[n]
-  elseif i == 2 and k == 10 then return SPR_W_2_10[n]
-  elseif i == 2 and k == 11 then return SPR_W_2_11[n]
+WBASE_1 = 0x2000 + 4 * 256
+WBASE_2 = 0x2000 + 4 * 256 + 128
+function upload_window(i)
+  if i == 1 and FCELL[i] == 0 then
+    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_0[n + 1] end
+  elseif i == 1 and FCELL[i] == 1 then
+    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_1[n + 1] end
+  elseif i == 1 and FCELL[i] == 2 then
+    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_2[n + 1] end
+  elseif i == 1 and FCELL[i] == 3 then
+    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_3[n + 1] end
+  elseif i == 1 and FCELL[i] == 4 then
+    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_4[n + 1] end
+  elseif i == 1 and FCELL[i] == 5 then
+    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_5[n + 1] end
+  elseif i == 1 and FCELL[i] == 6 then
+    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_6[n + 1] end
+  elseif i == 1 and FCELL[i] == 7 then
+    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_7[n + 1] end
+  elseif i == 1 and FCELL[i] == 8 then
+    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_8[n + 1] end
+  elseif i == 1 and FCELL[i] == 9 then
+    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_9[n + 1] end
+  elseif i == 1 and FCELL[i] == 10 then
+    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_10[n + 1] end
+  elseif i == 1 and FCELL[i] == 11 then
+    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_11[n + 1] end
+  elseif i == 2 and FCELL[i] == 0 then
+    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_0[n + 1] end
+  elseif i == 2 and FCELL[i] == 1 then
+    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_1[n + 1] end
+  elseif i == 2 and FCELL[i] == 2 then
+    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_2[n + 1] end
+  elseif i == 2 and FCELL[i] == 3 then
+    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_3[n + 1] end
+  elseif i == 2 and FCELL[i] == 4 then
+    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_4[n + 1] end
+  elseif i == 2 and FCELL[i] == 5 then
+    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_5[n + 1] end
+  elseif i == 2 and FCELL[i] == 6 then
+    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_6[n + 1] end
+  elseif i == 2 and FCELL[i] == 7 then
+    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_7[n + 1] end
+  elseif i == 2 and FCELL[i] == 8 then
+    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_8[n + 1] end
+  elseif i == 2 and FCELL[i] == 9 then
+    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_9[n + 1] end
+  elseif i == 2 and FCELL[i] == 10 then
+    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_10[n + 1] end
+  elseif i == 2 and FCELL[i] == 11 then
+    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_11[n + 1] end
   end
-  return 0
 end

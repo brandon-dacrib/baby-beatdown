@@ -7,6 +7,9 @@ placed on row pairs) and 8x8 pieces. Emits cart/sprites.lua with:
 usage: pieces.py char_for_slot1 char_for_slot2   (character ids 1..8)"""
 import json, sys
 POSES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]        # cell k = POSES[k]
+OUT = "cart/sprites.lua"
+if "--small" in sys.argv: POSES = [0, 1, 3, 4]; OUT = "cart/sprites_small.lua"      # compile-scaling test build
+sys.argv = [a for a in sys.argv if not a.startswith("--")]
 ROWS, COLS = 6, 8
 chars = [int(a) for a in sys.argv[1:3]] or [1, 2]
 def tile_words(g, tx, ty):
@@ -85,5 +88,17 @@ def arr(name, vals, lo, hi):
     out.append(f"{name} = {{ " + ", ".join(map(str, vals)) + " }")
 arr("PC_START", pc_start, 1, len(pcx)); arr("PC_N", pc_n, 0, 32)
 arr("PC_X", pcx, 0, 56); arr("PC_Y", pcy, 0, 56); arr("PC_BIG", pcb, 0, 1); arr("PC_TILE", pct, 0, 95)
-open("cart/sprites.lua", "w").write("\n".join(out) + "\n")
-print(f"slots {chars}: {len(pcx)} pieces, max per pose {max(pc_n)}, {len(POSES)*len(chars)} windows x 768 words, file {len(''.join(out))//1024} KB")
+# upload_window: one plain copy loop per (fighter, pose) so the cart can skip it while the pose is unchanged.
+# word n of a window maps to OBJ word WBASE_i + (n // 128) * 256 + n % 128 (8 of the 16 tiles of each row).
+out.append("WBASE_1 = 0x2000 + 4 * 256")
+out.append("WBASE_2 = 0x2000 + 4 * 256 + 128")
+out.append("function upload_window(i)")
+first = True
+for slot in (1, 2):
+    for k in range(len(POSES)):
+        out.append(f"  {'if' if first else 'elseif'} i == {slot} and FCELL[i] == {k} then")
+        out.append(f"    for n = 0, {ROWS*COLS*16 - 1} do vram[WBASE_{slot} + (n // 128) * 256 + n % 128] = SPR_W_{slot}_{k}[n + 1] end")
+        first = False
+out.append("  end\nend")
+open(OUT, "w").write("\n".join(out) + "\n")
+print(f"slots {chars}: {len(pcx)} pieces, max per pose {max(pc_n)}, {len(POSES)*len(chars)} windows x 768 words -> {OUT}")

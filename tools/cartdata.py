@@ -5,7 +5,9 @@ all in whole pixels, derived from the Studio toy's 64x64 sprite-space boxes (ori
 feet at y=64, centre x=32)."""
 import json
 g = json.load(open("cart/gamedata.json")); idx = json.load(open("cart/sources/index.json"))
-cells = {p: k for k, p in enumerate([0,1,2,3,4,5,6,7,8,9,10,11])}   # cell k = core pose k (tools/pieces.py)
+import os
+CELLSET = [0,1,3,4] if os.environ.get('SMALL') else [0,1,2,3,4,5,6,7,8,9,10,11]
+cells = {p: k for k, p in enumerate(CELLSET)}   # cell k = core pose k (tools/pieces.py)
 PUNCHY = {3,12,13,15,48,49,50,51,52,53,59,60,61,64,65,66,10}
 KICKY = {4,11,14,16,17,54,55,56,57,58,62,63}
 def cell_of(p):
