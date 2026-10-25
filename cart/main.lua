@@ -5,13 +5,14 @@ mode = 1
 brightness = 15
 
 -- ---------------------------------------------------------------- VRAM layout (word addresses)
--- 0x0000 stage tiles | 0x1800 stage map | 0x2000 OBJ: two 48-tile fighter windows (tiles 0..95, streamed
--- per pose through the VBlank window, SF2T style) | OBJ tiles 96.. the font for the sprite HUD
+-- 0x0000 stage tiles | 0x1800 stage map | 0x2000 OBJ: font tiles 0..48 for the sprite HUD, then two 48-tile
+-- fighter windows at tile rows 4..9 (tiles 64..159), streamed per pose through the VBlank window, SF2T style
 local STAGE = dma("stage", { char = 0x0000, pal = 0 })   -- 16-tile sheet; the map is built in init()
 local STAGE_MAP = 0x1800
 local OBJ_BASE = 0x2000
-local FONT = dma("fontobj", { char = 0x2600, pal = 2 })  -- OBJ tiles 96..144, sprite palette 2
-local FONT_TILE = 96
+local FONT = dma("fontobj", { char = 0x2000, pal = 2 })  -- OBJ tiles 0..48, sprite palette 2
+local FONT_TILE = 0
+local WIN_ROW0 = 4              -- fighter windows use OBJ tile rows 4..9 (tiles 64..159)
 local HUD_OBJ = 48               -- OAM 0..23 P1 pieces, 24..47 P2 pieces, 48.. HUD
 FLOOR = 176                 -- screen y of the feet
 HP_MAX, METER_MAX = 96, 96
@@ -87,7 +88,7 @@ PREV_X = 0
 PREV_B = 0
 ---@snes range PREV_A 0 1
 PREV_A = 0
----@snes vblank 8192 9727
+---@snes vblank 9216 10751
 ---@snes range FRAME 0 65535
 FRAME = 0
 ---@snes range CLOCK 0 99
@@ -438,7 +439,7 @@ function upload_window(i)
   local col0 = (i - 1) * 8
   for r = 0, SPR_ROWS - 1 do
     for c = 0, SPR_COLS - 1 do
-      local dst = OBJ_BASE + (r * 16 + col0 + c) * 16
+      local dst = OBJ_BASE + ((r + WIN_ROW0) * 16 + col0 + c) * 16
       local src = (r * SPR_COLS + c) * 16
       for w = 0, 15 do
         vram[dst + w] = pose_word(i, k, src + w + 1)
@@ -466,7 +467,7 @@ function draw_fighters()
         if FFACE[i] == -1 then px = 64 - px - size end
         obj[o].x = ox + px
         obj[o].y = oy + PC_Y[p]
-        obj[o].tile = PC_TILE[p] + (i - 1) * 8
+        obj[o].tile = PC_TILE[p] + WIN_ROW0 * 16 + (i - 1) * 8
         obj[o].large = (size == 16)
         obj[o].flip_x = (FFACE[i] == -1)
         obj[o].pal = i - 1
