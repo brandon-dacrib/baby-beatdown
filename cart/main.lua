@@ -5,14 +5,14 @@ mode = 1
 brightness = 15
 
 -- ---------------------------------------------------------------- VRAM layout (word addresses)
--- 0x0000 stage tiles | 0x1000 HUD font | 0x1800 stage map | 0x1C00 HUD map | 0x2000.. OBJ: 8 poses x 2 fighters
+-- 0x0000 stage tiles | 0x1800 stage map | 0x2000 OBJ: two 48-tile fighter windows (tiles 0..95, streamed
+-- per pose through the VBlank window, SF2T style) | OBJ tiles 96.. the font for the sprite HUD
 local STAGE = dma("stage", { char = 0x0000, pal = 0 })   -- 16-tile sheet; the map is built in init()
 local STAGE_MAP = 0x1800
-local FONT = dma("font", { char = 0x1000, pal = 16 })
-local P1SRC = dma("char1", { char = 0x2000, pal = 0 })
-local P2SRC = dma("char2", { char = P1SRC.next_char, pal = 1 })
-local HUD_MAP = 0x1C00
-local HUD_ATTR = 0x2400          -- palette 1, high priority
+local OBJ_BASE = 0x2000
+local FONT = dma("fontobj", { char = 0x2600, pal = 2 })  -- OBJ tiles 96..144, sprite palette 2
+local FONT_TILE = 96
+local HUD_OBJ = 48               -- OAM 0..23 P1 pieces, 24..47 P2 pieces, 48.. HUD
 FLOOR = 176                 -- screen y of the feet
 HP_MAX, METER_MAX = 96, 96
 N_PLAYERS = 2
@@ -87,7 +87,7 @@ PREV_X = 0
 PREV_B = 0
 ---@snes range PREV_A 0 1
 PREV_A = 0
----@snes vblank 7168 7423
+---@snes vblank 8192 9727
 ---@snes range FRAME 0 65535
 FRAME = 0
 ---@snes range CLOCK 0 99
@@ -430,33 +430,69 @@ end
 -- ---------------------------------------------------------------- drawing
 -- Each slot owns a 64x64 window of 64 tiles (8x8 tiles, 16 per row => tiles base, base+1.. base+7, base+16..).
 -- stream_cell copies one 64x64 cell (2 KB) of the character sheet into the window; see sprites.lua.
--- cell k of a 64x64 OBJ sheet: two cells per 16-tile band of 8 rows -> tile (k//2)*128 + (k%2)*8
-function draw_fighters()
-  obj[0].tile = P1SRC.tile + (FCELL[1] // 2) * 128 + (FCELL[1] % 2) * 8
-  obj[1].tile = P2SRC.tile + (FCELL[2] // 2) * 128 + (FCELL[2] % 2) * 8
-  obj[0].pal = P1SRC.pal
-  obj[1].pal = P2SRC.pal
-  for i = 1, 2 do
-    obj[i - 1].large = true
-    obj[i - 1].flip_x = (FFACE[i] == -1)
-    obj[i - 1].x = FX[i] // 16 - 32
-    obj[i - 1].y = FLOOR + FY[i] // 16 - 64
-    obj[i - 1].prio = 2
-    obj[i - 1].on = not (FFLASH[i] > 0 and FFLASH[i] % 2 == 1)
+-- ---------------------------------------------------------------- sprites (SF2T: per-pose tile window + piece list)
+-- Fighter i owns window columns 8*(i-1)..8*(i-1)+7 of OBJ tile rows 0..5. upload_window copies the pose's
+-- 768 words when the shown cell changes; only that update pays for it.
+function upload_window(i)
+  local k = FCELL[i]
+  local col0 = (i - 1) * 8
+  for r = 0, SPR_ROWS - 1 do
+    for c = 0, SPR_COLS - 1 do
+      local dst = OBJ_BASE + (r * 16 + col0 + c) * 16
+      local src = (r * SPR_COLS + c) * 16
+      for w = 0, 15 do
+        vram[dst + w] = pose_word(i, k, src + w + 1)
+      end
+    end
   end
 end
 
--- ---------------------------------------------------------------- HUD (font glyphs: A=1..Z=26, 0-9 = 27..36)
-function hud_glyph(col, row, g)
-  vram[HUD_MAP + row * 32 + col] = g | HUD_ATTR
+function draw_fighters()
+  for i = 1, 2 do
+    if FSHOWN[i] ~= FCELL[i] then upload_window(i); FSHOWN[i] = FCELL[i] end
+    local idx = (i - 1) * NCELL + FCELL[i] + 1
+    local p0 = PC_START[idx]
+    local n = PC_N[idx]
+    local ox = FX[i] // 16 - 32
+    local oy = FLOOR + FY[i] // 16 - 64
+    local hidden = (FFLASH[i] > 0 and FFLASH[i] % 2 == 1)
+    for j = 0, 23 do
+      local o = (i - 1) * 24 + j
+      if j < n then
+        local p = p0 + j
+        local size = 8
+        if PC_BIG[p] == 1 then size = 16 end
+        local px = PC_X[p]
+        if FFACE[i] == -1 then px = 64 - px - size end
+        obj[o].x = ox + px
+        obj[o].y = oy + PC_Y[p]
+        obj[o].tile = PC_TILE[p] + (i - 1) * 8
+        obj[o].large = (size == 16)
+        obj[o].flip_x = (FFACE[i] == -1)
+        obj[o].pal = i - 1
+        obj[o].prio = 2
+        obj[o].on = not hidden
+      else
+        obj[o].on = false
+      end
+    end
+  end
+end
+
+-- ---------------------------------------------------------------- HUD as sprites (font glyphs: A=1..Z=26, 0-9 = 27..36)
+function hud_obj(o, x, y, g)
+  obj[o].x = x
+  obj[o].y = y
+  obj[o].tile = FONT_TILE + g
+  obj[o].pal = 2
+  obj[o].prio = 3
+  obj[o].large = false
+  obj[o].on = (g > 0)
 end
 function setup_hud()
-  bg[2].char_base = FONT.char
-  bg[2].map_base = HUD_MAP
-  screen.main.bg2 = true
   for i = 1, 8 do
-    hud_glyph(i, 2, CH_NAME[(FCHAR[1] - 1) * 8 + i])
-    hud_glyph(23 + i, 2, CH_NAME[(FCHAR[2] - 1) * 8 + i])
+    hud_obj(HUD_OBJ + i - 1, 8 + i * 8, 16, CH_NAME[(FCHAR[1] - 1) * 8 + i])
+    hud_obj(HUD_OBJ + 7 + i, 184 + i * 8, 16, CH_NAME[(FCHAR[2] - 1) * 8 + i])
   end
 end
 function draw_hud()
@@ -467,8 +503,8 @@ function draw_hud()
     if i < h1 then g1 = 43 end
     local g2 = 44
     if i < h2 then g2 = 43 end
-    hud_glyph(12 - i, 1, g1)
-    hud_glyph(19 + i, 1, g2)
+    hud_obj(HUD_OBJ + 16 + i, 96 - i * 8, 8, g1)
+    hud_obj(HUD_OBJ + 28 + i, 152 + i * 8, 8, g2)
   end
   local m1 = FMETER[1] // 16
   local m2 = FMETER[2] // 16
@@ -477,11 +513,11 @@ function draw_hud()
     if i < m1 then g1 = 45 end
     local g2 = 46
     if i < m2 then g2 = 45 end
-    hud_glyph(12 - i, 3, g1)
-    hud_glyph(19 + i, 3, g2)
+    hud_obj(HUD_OBJ + 40 + i, 96 - i * 8, 24, g1)
+    hud_obj(HUD_OBJ + 46 + i, 152 + i * 8, 24, g2)
   end
-  hud_glyph(15, 2, 27 + CLOCK // 10)
-  hud_glyph(16, 2, 27 + CLOCK % 10)
+  hud_obj(HUD_OBJ + 52, 120, 16, 27 + CLOCK // 10)
+  hud_obj(HUD_OBJ + 53, 128, 16, 27 + CLOCK % 10)
 end
 
 function init()
@@ -497,8 +533,16 @@ function init()
   end
   screen.main.bg1 = true
   screen.main.obj = true
-  obj.char_base = P1SRC.char
-  obj.size_sel = 2             -- small 8x8, large 64x64
+  obj.char_base = OBJ_BASE
+  obj.size_sel = 0             -- small 8x8, large 16x16
+  for i = 1, 15 do
+    cgram[128 + i] = SPR_PAL_1[i]
+    cgram[144 + i] = SPR_PAL_2[i]
+  end
+  upload_window(1)
+  upload_window(2)
+  FSHOWN[1] = FCELL[1]
+  FSHOWN[2] = FCELL[2]
   set_script(1, SC_IDLE)
   set_script(2, SC_IDLE)
   setup_hud()
