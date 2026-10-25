@@ -90,8 +90,11 @@ documented in `reference/SF2T_SNES_ARCHITECTURE.md`:
   46 tiles, 19 pieces; 16x16 dedup across poses is only ~15 % (the painter shades by neighbourhood).
   The pose data is for a fixed pair (Brandon, Arlo) until constant arrays are known to live in ROM.
 - In the Studio (toy "baby-beatdown-cart", one merged `main.lua` because files run in creation order):
-  Lua mode plays Brandon vs CPU Arlo with all 12 core poses streaming; the 4-pose resident build reported
-  **0 errors** and a 1.2-frame slowest path; the streamed build's verdict is in the SNES panel. `tools/studio.py` drives the Studio over plain HTTP
+  the streamed build (4 poses per fighter test set) reports **0 errors: "Runs on the SNES at 30 Hz, as declared"**
+  (`---@snes frames 2`; Lua mode skips odd frames). Lessons: one plain copy loop per pose with constant VRAM
+  bases so the compiler can skip it while the pose is unchanged (a dispatcher call per word cost 23 frames);
+  the merged file must declare every table before the code that reads it (order: data, sprite tables,
+  engine, upload code), or the compiler reports undeclared globals as "hardware fields". `tools/studio.py` drives the Studio over plain HTTP
   (the MCP endpoint is per Studio tab; `snes_check` over HTTP hits the 100 s gateway timeout, read the
   SNES panel instead).
 
