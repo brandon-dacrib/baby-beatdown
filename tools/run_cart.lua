@@ -17,7 +17,7 @@ function dma(name, o) return { name = name, char = (o and o.char) or 0, map = (o
 function bank() return {} end
 function sfx() end
 function score() return {} end
-for _, f in ipairs({ "data_small.lua", "sprites_small.lua", "main.lua" }) do
+for _, f in ipairs({ "data_small.lua", "sprites_small.lua", "main.lua", "upload_small.lua" }) do
   local chunk = assert(loadfile("cart/" .. f)); chunk()
 end
 local ok, err = xpcall(init, debug.traceback)
