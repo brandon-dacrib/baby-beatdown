@@ -101,8 +101,8 @@ AI_T = 0
 AI_PLAN = 0
 
 function rnd8()
-  RNG = (RNG * 75 + 74) % 65537
-  return RNG % 256
+  RNG = (RNG * 75 + 74) & 0xFFFF
+  return RNG & 255
 end
 
 -- ---------------------------------------------------------------- script interpreter (SF2T $C1:34F7)
