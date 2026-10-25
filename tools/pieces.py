@@ -9,6 +9,7 @@ import json, sys
 POSES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]        # cell k = POSES[k]
 OUT = "cart/sprites.lua"
 if "--small" in sys.argv: POSES = [0, 1, 3, 4]; OUT = "cart/sprites_small.lua"      # compile-scaling test build
+if "--mid" in sys.argv: POSES = [0, 1, 3, 4, 5, 6, 7, 9]; OUT = "cart/sprites_mid.lua"   # 8 poses: idle walk punch kick crouch jump hit ko
 sys.argv = [a for a in sys.argv if not a.startswith("--")]
 ROWS, COLS = 6, 8
 chars = [int(a) for a in sys.argv[1:3]] or [1, 2]
