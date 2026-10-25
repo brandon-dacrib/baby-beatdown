@@ -71,52 +71,52 @@ local WBASE_1 = 9216   -- 0x2000 + 4 * 256: OBJ tile row 4, columns 0..7
 local WBASE_2 = 9344   -- + 128: columns 8..15
 function upload_window(i)
   if i == 1 and FCELL[i] == 0 then
-    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_0[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_0[r * 128 + c + 1] end end
   elseif i == 1 and FCELL[i] == 1 then
-    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_1[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_1[r * 128 + c + 1] end end
   elseif i == 1 and FCELL[i] == 2 then
-    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_2[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_2[r * 128 + c + 1] end end
   elseif i == 1 and FCELL[i] == 3 then
-    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_3[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_3[r * 128 + c + 1] end end
   elseif i == 1 and FCELL[i] == 4 then
-    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_4[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_4[r * 128 + c + 1] end end
   elseif i == 1 and FCELL[i] == 5 then
-    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_5[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_5[r * 128 + c + 1] end end
   elseif i == 1 and FCELL[i] == 6 then
-    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_6[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_6[r * 128 + c + 1] end end
   elseif i == 1 and FCELL[i] == 7 then
-    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_7[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_7[r * 128 + c + 1] end end
   elseif i == 1 and FCELL[i] == 8 then
-    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_8[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_8[r * 128 + c + 1] end end
   elseif i == 1 and FCELL[i] == 9 then
-    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_9[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_9[r * 128 + c + 1] end end
   elseif i == 1 and FCELL[i] == 10 then
-    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_10[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_10[r * 128 + c + 1] end end
   elseif i == 1 and FCELL[i] == 11 then
-    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_11[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_11[r * 128 + c + 1] end end
   elseif i == 2 and FCELL[i] == 0 then
-    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_0[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_0[r * 128 + c + 1] end end
   elseif i == 2 and FCELL[i] == 1 then
-    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_1[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_1[r * 128 + c + 1] end end
   elseif i == 2 and FCELL[i] == 2 then
-    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_2[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_2[r * 128 + c + 1] end end
   elseif i == 2 and FCELL[i] == 3 then
-    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_3[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_3[r * 128 + c + 1] end end
   elseif i == 2 and FCELL[i] == 4 then
-    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_4[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_4[r * 128 + c + 1] end end
   elseif i == 2 and FCELL[i] == 5 then
-    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_5[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_5[r * 128 + c + 1] end end
   elseif i == 2 and FCELL[i] == 6 then
-    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_6[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_6[r * 128 + c + 1] end end
   elseif i == 2 and FCELL[i] == 7 then
-    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_7[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_7[r * 128 + c + 1] end end
   elseif i == 2 and FCELL[i] == 8 then
-    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_8[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_8[r * 128 + c + 1] end end
   elseif i == 2 and FCELL[i] == 9 then
-    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_9[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_9[r * 128 + c + 1] end end
   elseif i == 2 and FCELL[i] == 10 then
-    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_10[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_10[r * 128 + c + 1] end end
   elseif i == 2 and FCELL[i] == 11 then
-    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_11[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_11[r * 128 + c + 1] end end
   end
 end

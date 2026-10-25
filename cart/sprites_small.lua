@@ -39,20 +39,20 @@ local WBASE_1 = 9216   -- 0x2000 + 4 * 256: OBJ tile row 4, columns 0..7
 local WBASE_2 = 9344   -- + 128: columns 8..15
 function upload_window(i)
   if i == 1 and FCELL[i] == 0 then
-    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_0[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_0[r * 128 + c + 1] end end
   elseif i == 1 and FCELL[i] == 1 then
-    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_1[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_1[r * 128 + c + 1] end end
   elseif i == 1 and FCELL[i] == 2 then
-    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_2[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_2[r * 128 + c + 1] end end
   elseif i == 1 and FCELL[i] == 3 then
-    for n = 0, 767 do vram[WBASE_1 + (n // 128) * 256 + n % 128] = SPR_W_1_3[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_3[r * 128 + c + 1] end end
   elseif i == 2 and FCELL[i] == 0 then
-    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_0[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_0[r * 128 + c + 1] end end
   elseif i == 2 and FCELL[i] == 1 then
-    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_1[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_1[r * 128 + c + 1] end end
   elseif i == 2 and FCELL[i] == 2 then
-    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_2[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_2[r * 128 + c + 1] end end
   elseif i == 2 and FCELL[i] == 3 then
-    for n = 0, 767 do vram[WBASE_2 + (n // 128) * 256 + n % 128] = SPR_W_2_3[n + 1] end
+    for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_3[r * 128 + c + 1] end end
   end
 end

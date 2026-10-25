@@ -97,7 +97,7 @@ first = True
 for slot in (1, 2):
     for k in range(len(POSES)):
         out.append(f"  {'if' if first else 'elseif'} i == {slot} and FCELL[i] == {k} then")
-        out.append(f"    for n = 0, {ROWS*COLS*16 - 1} do vram[WBASE_{slot} + (n // 128) * 256 + n % 128] = SPR_W_{slot}_{k}[n + 1] end")
+        out.append(f"    for r = 0, {ROWS - 1} do for c = 0, 127 do vram[WBASE_{slot} + r * 256 + c] = SPR_W_{slot}_{k}[r * 128 + c + 1] end end")
         first = False
 out.append("  end\nend")
 open(OUT, "w").write("\n".join(out) + "\n")
