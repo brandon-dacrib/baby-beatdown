@@ -97,7 +97,9 @@ for slot in (1, 2):
     out.append(f"  local k = FCELL[{slot}]")
     for k in range(len(POSES)):
         out.append(f"  {'if' if k == 0 else 'elseif'} k == {k} then")
-        out.append(f"    for r = 0, {ROWS - 1} do for c = 0, 127 do vram[WBASE_{slot} + r * 256 + c] = SPR_W_{slot}_{k}[r * 128 + c + 1] end end")
+        for r in range(ROWS):
+            base = (9216 if slot == 1 else 9344) + r * 256
+            out.append(f"    for c = 0, 127 do vram[{base} + c] = SPR_W_{slot}_{k}[{r * 128 + 1} + c] end")
     out.append("  end\nend")
 out.append("function upload_window(i)\n  if i == 1 then upload_window_1() else upload_window_2() end\nend")
 open(OUT, "w").write("\n".join(out) + "\n")

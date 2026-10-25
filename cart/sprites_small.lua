@@ -40,25 +40,65 @@ local WBASE_2 = 9344   -- + 128: columns 8..15
 function upload_window_1()
   local k = FCELL[1]
   if k == 0 then
-    for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_0[r * 128 + c + 1] end end
+    for c = 0, 127 do vram[9216 + c] = SPR_W_1_0[1 + c] end
+    for c = 0, 127 do vram[9472 + c] = SPR_W_1_0[129 + c] end
+    for c = 0, 127 do vram[9728 + c] = SPR_W_1_0[257 + c] end
+    for c = 0, 127 do vram[9984 + c] = SPR_W_1_0[385 + c] end
+    for c = 0, 127 do vram[10240 + c] = SPR_W_1_0[513 + c] end
+    for c = 0, 127 do vram[10496 + c] = SPR_W_1_0[641 + c] end
   elseif k == 1 then
-    for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_1[r * 128 + c + 1] end end
+    for c = 0, 127 do vram[9216 + c] = SPR_W_1_1[1 + c] end
+    for c = 0, 127 do vram[9472 + c] = SPR_W_1_1[129 + c] end
+    for c = 0, 127 do vram[9728 + c] = SPR_W_1_1[257 + c] end
+    for c = 0, 127 do vram[9984 + c] = SPR_W_1_1[385 + c] end
+    for c = 0, 127 do vram[10240 + c] = SPR_W_1_1[513 + c] end
+    for c = 0, 127 do vram[10496 + c] = SPR_W_1_1[641 + c] end
   elseif k == 2 then
-    for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_2[r * 128 + c + 1] end end
+    for c = 0, 127 do vram[9216 + c] = SPR_W_1_2[1 + c] end
+    for c = 0, 127 do vram[9472 + c] = SPR_W_1_2[129 + c] end
+    for c = 0, 127 do vram[9728 + c] = SPR_W_1_2[257 + c] end
+    for c = 0, 127 do vram[9984 + c] = SPR_W_1_2[385 + c] end
+    for c = 0, 127 do vram[10240 + c] = SPR_W_1_2[513 + c] end
+    for c = 0, 127 do vram[10496 + c] = SPR_W_1_2[641 + c] end
   elseif k == 3 then
-    for r = 0, 5 do for c = 0, 127 do vram[WBASE_1 + r * 256 + c] = SPR_W_1_3[r * 128 + c + 1] end end
+    for c = 0, 127 do vram[9216 + c] = SPR_W_1_3[1 + c] end
+    for c = 0, 127 do vram[9472 + c] = SPR_W_1_3[129 + c] end
+    for c = 0, 127 do vram[9728 + c] = SPR_W_1_3[257 + c] end
+    for c = 0, 127 do vram[9984 + c] = SPR_W_1_3[385 + c] end
+    for c = 0, 127 do vram[10240 + c] = SPR_W_1_3[513 + c] end
+    for c = 0, 127 do vram[10496 + c] = SPR_W_1_3[641 + c] end
   end
 end
 function upload_window_2()
   local k = FCELL[2]
   if k == 0 then
-    for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_0[r * 128 + c + 1] end end
+    for c = 0, 127 do vram[9344 + c] = SPR_W_2_0[1 + c] end
+    for c = 0, 127 do vram[9600 + c] = SPR_W_2_0[129 + c] end
+    for c = 0, 127 do vram[9856 + c] = SPR_W_2_0[257 + c] end
+    for c = 0, 127 do vram[10112 + c] = SPR_W_2_0[385 + c] end
+    for c = 0, 127 do vram[10368 + c] = SPR_W_2_0[513 + c] end
+    for c = 0, 127 do vram[10624 + c] = SPR_W_2_0[641 + c] end
   elseif k == 1 then
-    for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_1[r * 128 + c + 1] end end
+    for c = 0, 127 do vram[9344 + c] = SPR_W_2_1[1 + c] end
+    for c = 0, 127 do vram[9600 + c] = SPR_W_2_1[129 + c] end
+    for c = 0, 127 do vram[9856 + c] = SPR_W_2_1[257 + c] end
+    for c = 0, 127 do vram[10112 + c] = SPR_W_2_1[385 + c] end
+    for c = 0, 127 do vram[10368 + c] = SPR_W_2_1[513 + c] end
+    for c = 0, 127 do vram[10624 + c] = SPR_W_2_1[641 + c] end
   elseif k == 2 then
-    for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_2[r * 128 + c + 1] end end
+    for c = 0, 127 do vram[9344 + c] = SPR_W_2_2[1 + c] end
+    for c = 0, 127 do vram[9600 + c] = SPR_W_2_2[129 + c] end
+    for c = 0, 127 do vram[9856 + c] = SPR_W_2_2[257 + c] end
+    for c = 0, 127 do vram[10112 + c] = SPR_W_2_2[385 + c] end
+    for c = 0, 127 do vram[10368 + c] = SPR_W_2_2[513 + c] end
+    for c = 0, 127 do vram[10624 + c] = SPR_W_2_2[641 + c] end
   elseif k == 3 then
-    for r = 0, 5 do for c = 0, 127 do vram[WBASE_2 + r * 256 + c] = SPR_W_2_3[r * 128 + c + 1] end end
+    for c = 0, 127 do vram[9344 + c] = SPR_W_2_3[1 + c] end
+    for c = 0, 127 do vram[9600 + c] = SPR_W_2_3[129 + c] end
+    for c = 0, 127 do vram[9856 + c] = SPR_W_2_3[257 + c] end
+    for c = 0, 127 do vram[10112 + c] = SPR_W_2_3[385 + c] end
+    for c = 0, 127 do vram[10368 + c] = SPR_W_2_3[513 + c] end
+    for c = 0, 127 do vram[10624 + c] = SPR_W_2_3[641 + c] end
   end
 end
 function upload_window(i)
