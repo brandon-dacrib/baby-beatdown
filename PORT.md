@@ -107,3 +107,23 @@ documented in `reference/SF2T_SNES_ARCHITECTURE.md`:
 
 Next: Export to ROM and run it in an emulator; reduce the slow path; a block/crouch/jump pose budget
 (16x16 piece lists to trim empty tiles); stages as `bg` sources; audio.
+
+### Export to ROM (2026-10-25 evening)
+
+`export_rom` on the full 4-pose streamed build fails with "The SNES toolchain could not build this project"
+(no findings; 363 s once, 755 s once) although `snes_check` passes at 30 Hz. Bisected on a fresh toy
+(`export-probe`), where each small variant compiles and exports in about 10 s:
+
+| probe | content | export |
+|---|---|---|
+| A | trivial frame | ROM, 6 s |
+| B | one 8,192-entry WRAM array read per frame | ROM, 5 s |
+| D | real sprite tables + real upload loops + vblank region | ROM, 6 s |
+| E | D + all data tables | ROM, 10 s |
+| F | E + `stage`/`fontobj` sources placed by file-level `dma()` | ROM, 11 s |
+| G0 | the full merged build | FAIL after 755 s |
+
+So tables, streaming, VBlank region and image sources all build; something in the engine code itself
+(cart/main.lua) makes the compile take minutes and the native build fail. Bisection of frame() in progress.
+Lessons: `dma()` must be unconditional file-level setup (not inside init); `---@snes lookup` cannot read
+tables (pure expression only), so it is not a ROM-data path for sprites.
