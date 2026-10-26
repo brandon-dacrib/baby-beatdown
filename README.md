@@ -60,3 +60,6 @@ Not yet done or unverified:
 - Commit and push to GitHub at the end of every work block.
 - If the Studio tab is lost (refresh, sign-in, browser close), restore from `00_LOAD_ORDER.md`.
   If the MCP server drops: `claude mcp remove ppu-studio`, `claude mcp add --transport http ppu-studio <url>`, then `/mcp` reconnect.
+
+
+**Cart status 2026-10-25:** the SF2T-format cart build exports a real ROM: `dist/baby-beatdown.sfc` (12 poses per fighter, 30 Hz, 0 errors). See PORT.md.

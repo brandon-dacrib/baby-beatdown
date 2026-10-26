@@ -133,3 +133,19 @@ Rule: the compiler expands helpers per call site; keep every non-trivial helper 
 function, or compile time (and the native build) goes superlinear.
 Lessons: `dma()` must be unconditional file-level setup (not inside init); `---@snes lookup` cannot read
 tables (pure expression only), so it is not a ROM-data path for sprites.
+
+### Result (2026-10-25, late)
+
+With the one-call-site engine every build exports:
+
+| build | poses/fighter | export | frame time |
+|---|---|---|---|
+| small | 4 | ROM in 50 s | 0.9 frames |
+| mid | 8 | ROM in 46 s | 30 Hz ok |
+| full | 12 | ROM in 61 s | 0.96 frames (cart allows 2) |
+
+The "compiler ceiling" above was the same call-site expansion, not table size. `dist/baby-beatdown.sfc`
+is the full 12-pose ROM (LoROM/FastROM header, checksum valid, 1 MB); `cart/merged_full.lua` is the exact
+Studio file it was built from (data.lua + sprites.lua + main.lua + upload.lua). The Studio toy
+"baby-beatdown-cart" carries the same file. Not yet done: booting the ROM in an emulator or on hardware
+(no emulator on this machine); ppu's own check ran the compiled program for 20 s with range contracts on.
