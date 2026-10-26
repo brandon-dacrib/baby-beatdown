@@ -336,7 +336,9 @@ function update_fighter(i, j)
   end
   if st == ST_JUMP then
     physics(i)
-    if IN_PUNCH[i] == 1 then start_move(i, MV_JPUNCH) elseif IN_KICK[i] == 1 then start_move(i, MV_JKICK) end
+    local jm = 0
+    if IN_PUNCH[i] == 1 then jm = MV_JPUNCH elseif IN_KICK[i] == 1 then jm = MV_JKICK end
+    if jm > 0 then start_move(i, jm) end
     return
   end
   -- grounded: face the opponent, read the pad
@@ -345,14 +347,15 @@ function update_fighter(i, j)
   local c = FCHAR[i]
   local fwd = IN_RIGHT[i]
   if FFACE[i] == -1 then fwd = IN_LEFT[i] end
+  local mv = 0
   if IN_SUPER[i] == 1 and FMETER[i] >= METER_MAX then
     FMETER[i] = 0; FSTATE[i] = ST_SUPER; FTIMER[i] = 0; FHITDONE[i] = 0; set_script(i, SC_SUPER)
-  elseif IN_KICK[i] == 1 and IN_DOWN[i] == 1 then start_move(i, CH_LOWK[c])
-  elseif IN_PUNCH[i] == 1 and IN_DOWN[i] == 1 then start_move(i, CH_LOWP[c])
-  elseif IN_PUNCH[i] == 1 and fwd == 1 then start_move(i, CH_FWDP[c])
-  elseif IN_KICK[i] == 1 and fwd == 1 then start_move(i, CH_FWDK[c])
-  elseif IN_PUNCH[i] == 1 then start_move(i, pick_move(i, 1))
-  elseif IN_KICK[i] == 1 then start_move(i, pick_move(i, 2))
+  elseif IN_KICK[i] == 1 and IN_DOWN[i] == 1 then mv = CH_LOWK[c]
+  elseif IN_PUNCH[i] == 1 and IN_DOWN[i] == 1 then mv = CH_LOWP[c]
+  elseif IN_PUNCH[i] == 1 and fwd == 1 then mv = CH_FWDP[c]
+  elseif IN_KICK[i] == 1 and fwd == 1 then mv = CH_FWDK[c]
+  elseif IN_PUNCH[i] == 1 then mv = pick_move(i, 1)
+  elseif IN_KICK[i] == 1 then mv = pick_move(i, 2)
   elseif IN_UP[i] == 1 then
     FSTATE[i] = ST_JUMP; FVY[i] = CH_JUMP[c]
     if IN_LEFT[i] == 1 then FVX[i] = -38 elseif IN_RIGHT[i] == 1 then FVX[i] = 38 end
@@ -372,6 +375,7 @@ function update_fighter(i, j)
     if st ~= ST_IDLE then set_script(i, SC_IDLE) end
     FSTATE[i] = ST_IDLE
   end
+  if mv > 0 then start_move(i, mv) end
 end
 
 -- ---------------------------------------------------------------- input
@@ -541,8 +545,7 @@ function frame(t, f)
   FRAME = FRAME + 1
   read_pads()
   cpu_input(2, 1)
-  update_fighter(1, 2)
-  update_fighter(2, 1)
+  for i = 1, 2 do update_fighter(i, 3 - i) end
   separate()
   if FRAME % 30 == 0 and CLOCK > 0 then CLOCK = CLOCK - 1 end
   draw_fighters()
