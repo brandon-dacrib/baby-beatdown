@@ -123,7 +123,13 @@ Next: Export to ROM and run it in an emulator; reduce the slow path; a block/cro
 | F | E + `stage`/`fontobj` sources placed by file-level `dma()` | ROM, 11 s |
 | G0 | the full merged build | FAIL after 755 s |
 
-So tables, streaming, VBlank region and image sources all build; something in the engine code itself
-(cart/main.lua) makes the compile take minutes and the native build fail. Bisection of frame() in progress.
+So tables, streaming, VBlank region and image sources all build; the engine code itself was the trigger.
+Draw-only frame: ROM after 652 s. Logic-only frame: never finished (>26 min). The fix was structural, not
+a dialect error: `update_fighter` was expanded at two call sites and contained eight `start_move` call
+sites (each pulling in `set_script` and `load_key`), plus two more in the jump branch. Replacing the two
+calls with `for i = 1, 2 do update_fighter(i, 3 - i) end` and collapsing the move chain to one
+`if mv > 0 then start_move(i, mv) end` cut the full build's export from a 755 s failure to a **30 s ROM**.
+Rule: the compiler expands helpers per call site; keep every non-trivial helper to ONE call site per
+function, or compile time (and the native build) goes superlinear.
 Lessons: `dma()` must be unconditional file-level setup (not inside init); `---@snes lookup` cannot read
 tables (pure expression only), so it is not a ROM-data path for sprites.
