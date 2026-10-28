@@ -16,8 +16,9 @@ mode, brightness = 1, 15
 function dma(name, o) return { name = name, char = (o and o.char) or 0, map = (o and o.map) or 0, pal = (o and o.pal) or 0, tile = 0, next_char = ((o and o.char) or 0) + 0x2000 } end
 function bank() return {} end
 function sfx() end
+function koff() end
 function score() return {} end
-for _, f in ipairs({ "data.lua", "sprites.lua", "main.lua", "upload.lua" }) do
+for _, f in ipairs({ "data.lua", "sprites.lua", "stage.lua", "main.lua", "upload.lua" }) do
   local chunk = assert(loadfile("cart/" .. f)); chunk()
 end
 local ok, err = xpcall(init, debug.traceback)

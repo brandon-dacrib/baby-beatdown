@@ -149,3 +149,38 @@ is the full 12-pose ROM (LoROM/FastROM header, checksum valid, 1 MB); `cart/merg
 Studio file it was built from (data.lua + sprites.lua + main.lua + upload.lua). The Studio toy
 "baby-beatdown-cart" carries the same file. Not yet done: booting the ROM in an emulator or on hardware
 (no emulator on this machine); ppu's own check ran the compiled program for 20 s with range contracts on.
+
+### First play on an emulator (2026-10-28): four reports, what they were, what changed
+
+1. **"Contract failed, source line 544", red screen after a few seconds.** Line 544 of `merged_full.lua` is
+   `FY[i] = FY[i] + FVY[i]` in `physics`: a falling fighter's height was stored above the floor (positive) and
+   clamped to 0 on the next line, but `---@snes array FY 2 -4096 0` is checked on the store. The Studio's
+   `check` never caught it; the cartridge runtime does. Fixed by clamping before the store. The same audit
+   (`tools/check_ranges.lua`: plain Lua with every `---@snes array/range` enforced on store, random P1 input vs
+   the CPU) found two more that the ROM would have hit later: `BX`/`OX` go negative when an attack box sits
+   behind a fighter at the left wall (ranges widened to -128..384), and `FTIMER` ran past 255 when a jump
+   attack started on the landing step (a grounded air move never ends: the fighter froze; fixed, and the
+   timer is capped). Six 40,000-frame random sessions now run with 0 violations. Run it after every engine
+   change: `lua tools/check_ranges.lua 40000 <seed>`.
+2. **Slow.** The data tables are the Studio toy's 60 Hz numbers (walk 2.4 px per step, 3-9 step startups) and
+   the cart ticks at 30 Hz (`---@snes frames 2`), so everything ran at half speed. `frame()` now runs the
+   logic twice per tick (`for k = 1, 2`), which keeps the simulation identical to the toy; only drawing is 30 fps.
+   A 60 Hz build needs the worst-case tick (a 768-word pose upload) under one frame; it measured 0.96.
+3. **No sound.** The cart had none. Added the toy's instruments as file-level scalars (`bank(...)`), hit/block/
+   whiff/KO `sfx` calls and `TUNE = score{ song = "bayou", loop = true }`. UNVERIFIED by `snes_check`: the
+   Studio endpoint was gone this session. The cart toy needs `write_song("bayou", toy/sources/songs/bayou.json)`
+   once before the merged file compiles, and the BRR budget (16.5 KB) may force a shorter song or fewer banks.
+4. **Graphics.** The cart drew a flat two-colour backdrop. `tools/cartstage.py N` now quantizes the painted
+   stage (same six-palette pipeline as the Studio) into `cart/stage.lua`: 471 tiles (7,536 words), the 28x32
+   map with palette/flip bits, six palettes; `init()` copies them to VRAM 0x4000 / map 0x7800 and CGRAM, with
+   a flat backdrop colour behind the transparent sky (the Studio's HDMA gradient is not ported yet; `hdma-bake`
+   is the path). The old `stage` sheet source and its `dma()` are gone. Verified by decoding the tables back
+   to a PNG (identical to `render/stage1_quant.png`). Still missing against the SF2 look: 12 poses per fighter
+   (SF2T streams ~60), no shadows, no hit sparks, no title/select, one stage. More poses are an export-time
+   question (24 arrays x 768 words built; stage adds 8.5 K words).
+
+Also added: round flow (a KO that has rested 2 s scores a win and resets both fighters; before, a KO froze
+the match for good). `tools/merge_cart.sh` rebuilds `cart/merged_full.lua` (data, sprites, stage, engine,
+upload). To re-export: reconnect the Studio MCP (`claude mcp add --transport http ppu-studio <url>`), in toy
+"baby-beatdown-cart" write the song source, write `main.lua` from `cart/merged_full.lua`, `snes_check`, then
+`export_rom` and replace `dist/baby-beatdown.sfc`. The ROM in `dist/` is still the 2026-10-25 build.

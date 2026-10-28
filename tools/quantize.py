@@ -144,8 +144,11 @@ def run(n, src, outdir, sky, slots=None, floor_rule=True, label="painted stage")
             blk = np.zeros((8, 8, 3), np.uint8)
             blk[a_] = (pal[d] * 8 + 4)
             out[ty*8:ty*8+8, tx*8:tx*8+8] = blk
-    Image.fromarray(out).resize((W*2, H*2), 0).save(os.path.join(outdir, "..", "render", f"stage{n}_quant.png"))
+    rdir = os.path.join(outdir, "..", "render")
+    if os.path.isdir(rdir):
+        Image.fromarray(out).resize((W*2, H*2), 0).save(os.path.join(rdir, f"stage{n}_quant.png"))
     print(f"stage {n}: {len(order)} unique tiles, lua {len(text)} bytes, mean err {total_err/max(1,alpha.sum()):.2f}")
+    return order, mapw, palette_words, slots
 
 def encode_tile(idx):
     out = bytearray()

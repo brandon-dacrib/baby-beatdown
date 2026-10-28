@@ -6,16 +6,25 @@ mode = 1
 brightness = 15
 
 -- ---------------------------------------------------------------- VRAM layout (word addresses)
--- 0x0000 stage tiles | 0x1800 stage map | 0x2000 OBJ: font tiles 0..48 for the sprite HUD, then two 48-tile
--- fighter windows at tile rows 4..9 (tiles 64..159), streamed per pose through the VBlank window, SF2T style
-local STAGE = dma("stage", { char = 0x0000, pal = 0 })   -- 16-tile sheet; the map is built in init()
-local STAGE_MAP = 0x1800
+-- 0x2000 OBJ: font tiles 0..48 for the sprite HUD, then two 48-tile fighter windows at tile rows 4..9
+-- (tiles 64..159), streamed per pose through the VBlank window, SF2T style | 0x4000 painted stage tiles
+-- (stage.lua, up to 896 tiles) | 0x7800 stage map (28 rows x 32). Stage palettes: BG slots 0,3,4,5,6,7.
+local STAGE_CHAR = 0x4000
+local STAGE_MAP = 0x7800
 local OBJ_BASE = 0x2000
+local SKY = 12959                -- rgb(252,162,100): backdrop behind the transparent sky tiles (middle of the painted gradient)
 local FONT = dma("fontobj", { char = 0x2000, pal = 2 })  -- OBJ tiles 0..48, sprite palette 2
 local FONT_TILE = 0
 local WIN_ROW0 = 4              -- fighter windows use OBJ tile rows 4..9 (tiles 64..159)
 local HUD_OBJ = 48               -- OAM 0..23 P1 pieces, 24..47 P2 pieces, 48.. HUD
 FLOOR = 176                 -- screen y of the feet
+-- ---------------------------------------------------------------- audio (the Studio toy's instruments; song source "bayou" = stage 1)
+TUNE = score{ song = "bayou", loop = true }
+SND_HIT = bank("snare", { vol = 110 })
+SND_THUD = bank("kick", { vol = 120 })
+SND_WHIFF = bank("hat", { vol = 60 })
+SND_BLOCK = bank("tom", { vol = 90 })
+SND_KO = bank("crash", { vol = 110 })
 HP_MAX, METER_MAX = 96, 96
 N_PLAYERS = 2
 
@@ -142,7 +151,7 @@ function step_script(i)
 end
 
 -- ---------------------------------------------------------------- boxes (SF2T: centre/half-extent, (dx+s) <= 2s)
----@snes range BX 0 4352
+---@snes range BX -128 384
 BX = 0
 ---@snes range BY 0 1000
 BY = 0
@@ -156,7 +165,7 @@ function world_box(i, cx, cy, hw, hh)
   BW = hw
   BH = hh
 end
----@snes range OX 0 4352
+---@snes range OX -128 384
 OX = 0
 ---@snes range OY 0 1000
 OY = 0
@@ -228,6 +237,7 @@ function start_move(i, m)
   FVX[i] = 0
   if M_HOP[m] < 0 then FVY[i] = M_HOP[m] end
   set_script(i, M_SCRIPT[m])
+  sfx(SND_WHIFF, 7, "C5")
 end
 
 function pick_move(i, kind)
@@ -260,6 +270,7 @@ function take_hit(att, def, dmg, stun, slot, low, high)
     FVX[def] = 0 - FFACE[def] * 32
     if FMETER[def] < METER_MAX - 3 then FMETER[def] = FMETER[def] + 3 else FMETER[def] = METER_MAX end
     set_script(def, SC_BLOCK)
+    sfx(SND_BLOCK, 6, "C4")
     return 0
   end
   if FHP[def] > dmg then FHP[def] = FHP[def] - dmg else FHP[def] = 0 end
@@ -267,14 +278,30 @@ function take_hit(att, def, dmg, stun, slot, low, high)
   FVX[def] = 0 - FFACE[def] * 40
   if FY[def] < 0 then FVY[def] = -48 end
   FFLASH[def] = 6
+  sfx(SND_HIT, 5, "A3"); sfx(SND_THUD, 7, "C2")
   if FMETER[att] < METER_MAX - 12 then FMETER[att] = FMETER[att] + 12 else FMETER[att] = METER_MAX end
   if FMETER[def] < METER_MAX - 6 then FMETER[def] = FMETER[def] + 6 else FMETER[def] = METER_MAX end
   if slot == 1 then set_script(def, SC_HEADSNAP) elseif slot == 3 then set_script(def, SC_STAGGER) else set_script(def, SC_GUT) end
   if FHP[def] == 0 then
     FSTATE[def] = ST_KO; FTIMER[def] = 0; FVY[def] = -80; FVX[def] = 0 - FFACE[def] * 48
     set_script(def, SC_KO)
+    sfx(SND_KO, 4, "G4")
   end
   return 1
+end
+
+-- after a KO lands and rests for two seconds: score the round, reset both fighters (SF2T: round init)
+function round_reset()
+  for i = 1, 2 do
+    if FSTATE[i] == ST_KO then
+      if FWINS[3 - i] < 2 then FWINS[3 - i] = FWINS[3 - i] + 1 else FWINS[3 - i] = 0; FWINS[i] = 0 end
+    end
+    FHP[i] = HP_MAX; FMETER[i] = 0; FY[i] = 0; FVX[i] = 0; FVY[i] = 0
+    FSTATE[i] = ST_IDLE; FTIMER[i] = 0; FMOVE[i] = 0; FFLASH[i] = 0; FLAST[i] = 0
+    set_script(i, SC_IDLE)
+  end
+  FX[1] = 1024; FX[2] = 2816; FFACE[1] = 1; FFACE[2] = -1
+  CLOCK = 99; AI_T = 0; AI_PLAN = 0
 end
 
 function physics(i)
@@ -282,8 +309,8 @@ function physics(i)
   if FY[i] < 0 or FVY[i] ~= 0 then
     FVY[i] = FVY[i] + CH_GRAV[FCHAR[i]]
     if FVY[i] > 255 then FVY[i] = 255 end
-    FY[i] = FY[i] + FVY[i]
-    if FY[i] >= 0 then
+    local ny = FY[i] + FVY[i]
+    if ny < 0 then FY[i] = ny else
       FY[i] = 0; FVY[i] = 0
       if FSTATE[i] == ST_JUMP or (FSTATE[i] == ST_ATTACK and M_FLAGS[FMOVE[i]] % 8 >= 4) then
         FSTATE[i] = ST_IDLE; FVX[i] = 0; set_script(i, SC_IDLE)
@@ -300,7 +327,10 @@ function update_fighter(i, j)
   step_script(i)
   if st == ST_KO then
     physics(i)
-    if FY[i] >= 0 then FVX[i] = FVX[i] * 13 // 16 end
+    if FY[i] >= 0 then
+      FVX[i] = FVX[i] * 13 // 16
+      if FTIMER[i] < 255 then FTIMER[i] = FTIMER[i] + 1 end
+    end
     return
   end
   if st == ST_WIN then return end
@@ -313,7 +343,7 @@ function update_fighter(i, j)
   end
   if st == ST_ATTACK then
     local m = FMOVE[i]
-    FTIMER[i] = FTIMER[i] + 1
+    if FTIMER[i] < 255 then FTIMER[i] = FTIMER[i] + 1 end
     if M_LUNGE[m] > 0 and FTIMER[i] <= M_STARTUP[m] + M_ACTIVE[m] then FVX[i] = FFACE[i] * M_LUNGE[m] else FVX[i] = 0 end
     if M_FLAGS[m] % 8 >= 4 then FVX[i] = FFACE[i] * 36 end
     physics(i)
@@ -338,7 +368,7 @@ function update_fighter(i, j)
     physics(i)
     local jm = 0
     if IN_PUNCH[i] == 1 then jm = MV_JPUNCH elseif IN_KICK[i] == 1 then jm = MV_JKICK end
-    if jm > 0 then start_move(i, jm) end
+    if jm > 0 and FSTATE[i] == ST_JUMP then start_move(i, jm) end   -- not on the landing step: a grounded air move never ends
     return
   end
   -- grounded: face the opponent, read the pad
@@ -513,15 +543,19 @@ function draw_hud()
 end
 
 function init()
-  bg[1].char_base = STAGE.char
+  bg[1].char_base = STAGE_CHAR
   bg[1].map_base = STAGE_MAP
-  -- sky rows 0..21 tile 1, ground line row 22 tile 2, floor rows 23..27 tile 3 (stage sheet tiles 0..15)
-  for row = 0, 27 do
-    for col = 0, 31 do
-      local tile = 1
-      if row == 22 then tile = 2 elseif row > 22 then tile = 3 end
-      vram[STAGE_MAP + row * 32 + col] = tile
-    end
+  -- painted stage: tiles, map and the six palettes from stage.lua (one-time copy, not in frame())
+  for c = 0, STG_NTILES * 16 - 1 do vram[STAGE_CHAR + c] = STG_TILES[1 + c] end
+  for c = 0, 895 do vram[STAGE_MAP + c] = STG_MAP[1 + c] end
+  cgram[0] = SKY
+  for i = 1, 15 do
+    cgram[i] = STG_PAL[i]
+    cgram[48 + i] = STG_PAL[15 + i]
+    cgram[64 + i] = STG_PAL[30 + i]
+    cgram[80 + i] = STG_PAL[45 + i]
+    cgram[96 + i] = STG_PAL[60 + i]
+    cgram[112 + i] = STG_PAL[75 + i]
   end
   screen.main.bg1 = true
   screen.main.obj = true
@@ -545,9 +579,12 @@ function frame(t, f)
   FRAME = FRAME + 1
   read_pads()
   cpu_input(2, 1)
-  for i = 1, 2 do update_fighter(i, 3 - i) end
-  separate()
+  for k = 1, 2 do                   -- two 60 Hz logic steps per 30 Hz tick (the tables are 60 Hz numbers)
+    for i = 1, 2 do update_fighter(i, 3 - i) end
+    separate()
+  end
   if FRAME % 30 == 0 and CLOCK > 0 then CLOCK = CLOCK - 1 end
+  if (FSTATE[1] == ST_KO and FTIMER[1] >= 120) or (FSTATE[2] == ST_KO and FTIMER[2] >= 120) then round_reset() end
   draw_fighters()
   draw_hud()
 end
