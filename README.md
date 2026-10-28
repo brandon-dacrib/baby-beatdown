@@ -64,4 +64,9 @@ Not yet done or unverified:
 
 **Cart status 2026-10-25:** the SF2T-format cart build exports a real ROM: `dist/baby-beatdown.sfc` (12 poses per fighter, 30 Hz, 0 errors). See PORT.md.
 
+**Native build 2026-10-28 (current):** the cartridge is now built locally in 65816 assembly (`make` ->
+`dist/baby-beatdown.sfc`, 60 Hz, all 56 poses of all 8 characters, painted bayou stage, music and sound
+effects through an SPC700 driver) and verified headless in Mesen2. See `NATIVE.md`. The ppu.toys cart dialect
+(`cart/`) and its PORT.md notes are kept for history only.
+
 **Cart status 2026-10-28:** first emulator play found a range-contract crash, half-speed logic, no sound and a flat backdrop. Source fixed and audited (`tools/check_ranges.lua`), painted stage 1 added (`tools/cartstage.py`), audio code added but unverified; the ROM in `dist/` predates these fixes until the Studio re-exports it. See the end of PORT.md.

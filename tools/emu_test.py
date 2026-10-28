@@ -47,6 +47,10 @@ lua = ["local shots = {" + ", ".join(f"[{f}]={k}" for k, f in enumerate(frames))
        "  for i = 0, 543 do emu.write(base + 0x7100 + i, emu.read(i, emu.memType.snesSpriteRam), emu.memType.snesSaveRam) end",
        "  for i = 0, 511 do emu.write(base + 0x7400 + i, emu.read(i, emu.memType.snesCgRam), emu.memType.snesSaveRam) end",
        "  for i = 0, 511 do emu.write(base + 0x7600 + i, emu.read(0xC000 + i, emu.memType.snesVideoRam), emu.memType.snesSaveRam) end",
+       "  local spct = emu.memType.spcRam or emu.memType.spcMemory",
+       "  for i = 0, 31 do emu.write(base + 0x7800 + i, emu.read(0x200 + i, spct), emu.memType.snesSaveRam) end",
+       "  for i = 0, 15 do emu.write(base + 0x7820 + i, emu.read(0x300 + i, spct), emu.memType.snesSaveRam) end",
+       "  for i = 0, 3 do emu.write(base + 0x7830 + i, emu.read(0xF4 + i, spct), emu.memType.snesSaveRam) end",
        "end",
        "emu.addEventCallback(function()",
        "  for _, inp in ipairs(inputs) do",
@@ -83,5 +87,7 @@ for k, fr in enumerate(frames):
     print(f"frame {fr}: " + " ".join(f"{n}={w(i*4)}/{w(i*4+2)}" for i, n in enumerate(ZP)))
     oam = d[base + 0x7100: base + 0x7100 + 544]; cg = d[base + 0x7400: base + 0x7600]; vr = d[base + 0x7600: base + 0x7800]
     print("  oam0..1:", oam[:8].hex(), "hi:", oam[512:514].hex(), "| cgram 0..3:", cg[:8].hex(), "slot3:", cg[96:104].hex(), "obj0:", cg[256:264].hex(), "| vram $6000:", vr[:16].hex(), "nonzero:", sum(1 for b in vr if b))
+    spc = d[base + 0x7800: base + 0x7840]
+    print("  spc $200:", spc[:12].hex(), "$300:", spc[32:40].hex(), "ports:", spc[48:52].hex())
     print(f"  pad={zp[0x7c]|zp[0x7d]<<8:04x} frame_ctr={w(0x80)} clock={w(0x82)} rng={w(0x84)} ai_t={w(0x86)} ai_plan={w(0x88)} spr={w(0x74)&0xffff:04x}/{w(0x76)&0xffff:04x} bank={zp[0x78]:02x}/{zp[0x7a]:02x}")
 print("exit", r.returncode)

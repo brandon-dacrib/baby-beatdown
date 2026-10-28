@@ -97,6 +97,17 @@ nmi_t0:   .res 2
 nmi_t1:   .res 2
 rng_t0:   .res 2
 rng_t1:   .res 2
+snd_seq:  .res 1
+snd_cmd:  .res 1
+snd_p1:   .res 1
+snd_p2:   .res 1
+snd_p3:   .res 1
+snd_pad:  .res 1
+song_ptr: .res 2
+song_base:.res 2
+song_wait:.res 2
+sfx_voice:.res 2
+sfx_sample:.res 2
 
 .segment "BSS"
 oam_shadow: .res 544
@@ -121,6 +132,13 @@ char_pals:
   .incbin "../gen/char7.pal"
   .incbin "../gen/char8.pal"
 stage_pal_slots: .byte 0, 3, 4, 5, 6, 7
+.include "../gen/audio.inc"
+.segment "AUDIO"            ; bank $9D: SPC driver + samples (read with long addressing)
+spc_driver:  .incbin "../build/spc.bin"
+spc_driver_end:
+spc_samples: .incbin "../gen/spc_samples.bin"
+spc_samples_end:
+.segment "RODATA"
 
 ; sprite data: 448 poses x 2048 bytes in banks $81.. (16 poses per 32 KB bank), see Makefile / lorom.cfg
 .macro SPRBANK n
@@ -183,7 +201,10 @@ reset:
   cpx #$1000
   bne :-
   jsr init_video
+  jsr spc_upload
   jsr init_game
+  lda #.loword(SONG_BAYOU)
+  jsr song_start
   a8
   lda #$81
   sta NMITIMEN              ; NMI + auto joypad
@@ -207,6 +228,7 @@ main_loop:
   jsr check_round
   jsr draw_fighters
   jsr draw_hud
+  jsr song_tick
   jmp main_loop
 
 ; the clock: one unit per 60 frames
@@ -1266,7 +1288,9 @@ nmi:
   sta fvy,x
 : ldy fmove,x
   ldby M_SCRIPT
-  jmp set_script
+  jsr set_script
+  lda #SMP_HAT
+  jmp sfx_play
 .endproc
 
 ; X = fighter, A = kind (1 punch, 2 kick). Returns A = move id
@@ -1376,7 +1400,9 @@ nmi:
   lda #METER_MAX
 : sta fmeter,x
   lda #SC_BLOCK
-  jmp set_script
+  jsr set_script
+  lda #SMP_TOM
+  jmp sfx_play
 @no_block:
   lda fhp,x
   sec
@@ -1401,6 +1427,8 @@ nmi:
   sta fvy,x
 : lda #6
   sta fflash,x
+  lda #SMP_SNARE
+  jsr sfx_play
   ldy att
   lda fmeter,y
   clc
@@ -1444,6 +1472,8 @@ nmi:
   sta fvx,x
   lda #SC_KO
   jsr set_script
+  lda #SMP_CRASH
+  jsr sfx_play
 @done:
   rts
 .endproc
@@ -2157,6 +2187,190 @@ nmi:
   inx
   cpx #16
   bne :-
+  rts
+.endproc
+
+; ------------------------------------------------------------------ audio: SPC upload, commands, sequencer, sfx
+; Upload the driver ($0200) and the sample block ($0300..) through the IPL ROM, then run the driver.
+.proc spc_upload
+  a8
+: lda APUIO0
+  cmp #$AA
+  bne :-
+  lda APUIO1
+  cmp #$BB
+  bne :-
+  ldx #$0200
+  stx APUIO2
+  lda #1
+  sta APUIO1
+  lda #$CC
+  sta APUIO0
+: cmp APUIO0
+  bne :-
+  ldx #0
+  ldy #0
+@b1:
+  lda f:spc_driver,x
+  sta APUIO1
+  tya
+  sta APUIO0
+: cmp APUIO0
+  bne :-
+  iny
+  inx
+  cpx #spc_driver_end - spc_driver
+  bne @b1
+  ; second block
+  ldx #SPC_SAMPLES_ADDR
+  stx APUIO2
+  lda #1
+  sta APUIO1
+  tya
+  inc a
+  sta APUIO0
+: cmp APUIO0
+  bne :-
+  ldx #0
+  ldy #0
+@b2:
+  lda f:spc_samples,x
+  sta APUIO1
+  tya
+  sta APUIO0
+: cmp APUIO0
+  bne :-
+  iny
+  inx
+  cpx #spc_samples_end - spc_samples
+  bne @b2
+  ; run
+  ldx #$0200
+  stx APUIO2
+  stz APUIO1
+  tya
+  inc a
+  sta APUIO0
+: cmp APUIO0
+  bne :-
+  ai16
+  stz snd_seq
+  rts
+.endproc
+
+; send snd_cmd (op | voice) with snd_p1..3; waits for the echo (bounded)
+.proc spc_cmd
+  a8
+  lda snd_seq
+  clc
+  adc #8
+  and #$38
+  sta snd_seq
+  ora snd_cmd
+  sta snd_cmd
+  lda snd_p1
+  sta APUIO1
+  lda snd_p2
+  sta APUIO2
+  lda snd_p3
+  sta APUIO3
+  lda snd_cmd
+  sta APUIO0
+  ldy #4000
+: cmp APUIO0
+  beq @ok
+  dey
+  bne :-
+@ok:
+  a16
+  rts
+.endproc
+
+; A = song address (bank $80)
+.proc song_start
+  sta song_ptr
+  sta song_base
+  lda (song_ptr)
+  and #$00FF
+  sta song_wait
+  rts
+.endproc
+
+.proc song_tick
+  lda song_wait
+  beq @run
+  dec song_wait
+  rts
+@run:
+  a8
+  ldy #1
+  lda (song_ptr),y
+  cmp #$FE
+  beq @loop
+  cmp #$FF
+  beq @next
+  sta snd_cmd
+  iny
+  lda (song_ptr),y
+  sta snd_p1
+  iny
+  lda (song_ptr),y
+  sta snd_p2
+  iny
+  lda (song_ptr),y
+  sta snd_p3
+  jsr spc_cmd
+  a8
+@next:
+  a16
+  lda song_ptr
+  clc
+  adc #5
+  sta song_ptr
+  bra @wait
+@loop:
+  a16
+  lda song_base
+  sta song_ptr
+@wait:
+  lda (song_ptr)
+  and #$00FF
+  sta song_wait
+  bne @done
+  bra @run
+@done:
+  rts
+.endproc
+
+; A = sample id; alternates voices 6 and 7; preserves X and Y
+.proc sfx_play
+  phx
+  phy
+  sta sfx_sample
+  lda sfx_voice
+  eor #1
+  sta sfx_voice
+  ora #6
+  sta tmp0
+  a8
+  lda tmp0
+  sta snd_cmd               ; op 00: volume
+  lda #60
+  sta snd_p1
+  sta snd_p2
+  jsr spc_cmd
+  a8
+  lda tmp0
+  ora #$40
+  sta snd_cmd               ; op 01: note on
+  lda sfx_sample
+  sta snd_p1
+  stz snd_p2
+  lda #$10
+  sta snd_p3                ; pitch $1000 = native rate
+  jsr spc_cmd
+  ply
+  plx
   rts
 .endproc
 
