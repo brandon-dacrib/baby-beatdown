@@ -1,0 +1,145 @@
+; snes.inc: PPU/CPU register names and width macros for ca65 (65816)
+INIDISP  = $2100
+OBSEL    = $2101
+OAMADDL  = $2102
+OAMADDH  = $2103
+OAMDATA  = $2104
+BGMODE   = $2105
+MOSAIC   = $2106
+BG1SC    = $2107
+BG2SC    = $2108
+BG3SC    = $2109
+BG4SC    = $210A
+BG12NBA  = $210B
+BG34NBA  = $210C
+BG1HOFS  = $210D
+BG1VOFS  = $210E
+BG2HOFS  = $210F
+BG2VOFS  = $2110
+BG3HOFS  = $2111
+BG3VOFS  = $2112
+BG4HOFS  = $2113
+BG4VOFS  = $2114
+VMAIN    = $2115
+VMADDL   = $2116
+VMADDH   = $2117
+VMDATAL  = $2118
+VMDATAH  = $2119
+M7SEL    = $211A
+CGADD    = $2121
+CGDATA   = $2122
+W12SEL   = $2123
+W34SEL   = $2124
+WOBJSEL  = $2125
+WBGLOG   = $212A
+WOBJLOG  = $212B
+TM       = $212C
+TS       = $212D
+TMW      = $212E
+TSW      = $212F
+CGWSEL   = $2130
+CGADSUB  = $2131
+COLDATA  = $2132
+SETINI   = $2133
+APUIO0   = $2140
+APUIO1   = $2141
+APUIO2   = $2142
+APUIO3   = $2143
+WMDATA   = $2180
+WMADDL   = $2181
+WMADDM   = $2182
+WMADDH   = $2183
+NMITIMEN = $4200
+WRIO     = $4201
+WRMPYA   = $4202
+WRMPYB   = $4203
+WRDIVL   = $4204
+WRDIVH   = $4205
+WRDIVB   = $4206
+HTIMEL   = $4207
+HTIMEH   = $4208
+VTIMEL   = $4209
+VTIMEH   = $420A
+MDMAEN   = $420B
+HDMAEN   = $420C
+MEMSEL   = $420D
+RDNMI    = $4210
+TIMEUP   = $4211
+HVBJOY   = $4212
+RDDIVL   = $4214
+RDDIVH   = $4215
+RDMPYL   = $4216
+RDMPYH   = $4217
+JOY1L    = $4218
+JOY1H    = $4219
+JOY2L    = $421A
+; DMA channel 0 registers (add $10 per channel)
+DMAP0    = $4300
+BBAD0    = $4301
+A1T0L    = $4302
+A1T0H    = $4303
+A1B0     = $4304
+DAS0L    = $4305
+DAS0H    = $4306
+
+.macro a8
+  sep #$20
+  .a8
+.endmacro
+.macro a16
+  rep #$20
+  .a16
+.endmacro
+.macro ai16
+  rep #$30
+  .a16
+  .i16
+.endmacro
+.macro i8
+  sep #$10
+  .i8
+.endmacro
+.macro i16
+  rep #$10
+  .i16
+.endmacro
+
+; load an unsigned byte from table,y into 16-bit A (A must be 16-bit on entry/exit)
+.macro ldby tbl
+  a8
+  lda tbl,y
+  a16
+  and #$00FF
+.endmacro
+; load an unsigned byte from table,x into 16-bit A
+.macro ldbx tbl
+  a8
+  lda tbl,x
+  a16
+  and #$00FF
+.endmacro
+; load a signed byte from table,y into 16-bit A (sign extended)
+.macro ldsby tbl
+  .local pos
+  ldby tbl
+  cmp #$0080
+  bcc pos
+  ora #$FF00
+pos:
+.endmacro
+; arithmetic shift right of 16-bit A by one
+.macro asr1
+  cmp #$8000
+  ror a
+.endmacro
+.macro asr4
+  asr1
+  asr1
+  asr1
+  asr1
+.endmacro
+; A = -A (16-bit)
+.macro neg16
+  eor #$FFFF
+  inc a
+.endmacro
