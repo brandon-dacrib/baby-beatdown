@@ -56,6 +56,8 @@ S("stagger",[(1,0x81,c(69),BS_HIT)])
 S("ko",     [(10,0,c(7),BS_KO),(1,0x81,c(9),BS_KO)])
 S("super",  [(1,0x81,c(10),BS_STAND)])
 S("win",    [(14,0,c(70),BS_STAND),(14,0x81,c(75),BS_STAND)])
+S("fall",   [(8,0,c(7),BS_KO),(1,0x81,c(9),BS_KO)])      # swept off the feet
+S("getup",  [(14,0x80,c(5),BS_CROUCH)])
 S("super_proj", [(18,0,c(10),BS_STAND),(18,0x80,c(3),BS_STAND)])
 S("rush_p", [(12,0,c(10),BS_STAND),(24,0x80,c(3),BS_STAND)])
 S("rush_k", [(12,0,c(10),BS_STAND),(24,0x80,c(4),BS_STAND)])
@@ -146,6 +148,33 @@ GL.update({str(d): 27 + d for d in range(10)}); GL[" "] = 0; GL["!"] = 37; GL[".
 w("SUP_NAME:")
 for sp in SUP: w("  .byte " + ", ".join(str(GL.get(ch, 0)) for ch in (sp["name"] + " " * 16)[:16]))
 tb("SUP_NAMECOL", [(32 - len(sp["name"])) // 2 for sp in SUP])
+# SF2-style chains (toy/combat.lua): pressing punch / kick again after a landed hit starts the next move
+CHAINS = [("jab cross upper", "kick cross upper"), ("jab cross highkick", "kick sweep upper"), ("jab jab jab cross", "highkick sweep"),
+          ("cross upper", "kick kick"), ("jab jab highkick", "kick highkick highkick"), ("cross cross upper", "kick sweep"),
+          ("jab upper", "kick kick kick highkick"), ("jab jab jab jab jab", "sweep sweep kick")]
+for key, idx in (("P", 0), ("K", 1)):
+    vals = []
+    for ch in CHAINS:
+        lst = [mv(n) for n in ch[idx].split()]; vals += (lst + [0] * 6)[:6]
+    tb("CH_CHAIN_" + key, vals)
+# breakable object per stage (toy/combat.lua BREAK): 0 barrel, 1 crate, 2 pot, 3 dew
+tb("STAGE_OBJ", [0, 2, 1, 0, 1, 2, 2, 3])
+# personalities: style (12), motivation (22), win line (24), lose line (24); glyphs available: A-Z 0-9 ! . - :
+BIO = [("BRANDON", "LAST COOKIE OR BUST", "COOKIE TIME! ALL MINE.", "WAAAH! NO COOKIE!"),
+       ("ARLO", "GUARDING HIS SQUEAKY", "WHO IS A GOOD BOY! ME!", "MY SQUEAKY... GONE."),
+       ("DAWN", "NAPS ARE FOR WINNERS", "PURRFECT. NAP TIME.", "HISS! REMATCH LATER."),
+       ("CHRIS", "NOBODY TOUCHES LUNCH", "MORE PUDDING PLEASE.", "OINK... STILL HUNGRY."),
+       ("ISAAC", "PROVE DUCKS CAN KICK", "QUACK ATTACK WINS!", "I WILL WADDLE BACK."),
+       ("TEDDY", "BIGGEST HUG WINS", "BEAR HUG CHAMPION!", "GRR... ONE MORE HUG."),
+       ("PIP", "CARROT CROWN OR BUST", "HOP TO IT - LOSER!", "MY EARS ARE DROOPING."),
+       ("BLUE", "HERE TO BUG EVERYONE", "BZZT. TOO EASY.", "ANTENNAE DOWN...")]
+def glyphs(text, n): return ", ".join(str(GL.get(ch, 0)) for ch in (text + " " * n)[:n])
+w("CH_STYLE:")
+for ch in ART: w("  .byte " + glyphs(ch["style"], 12))
+for key, idx, n in (("CH_MOTIVE", 1, 22), ("CH_WINLINE", 2, 24), ("CH_LOSELINE", 3, 24)):
+    w(key + ":")
+    for b in BIO: w("  .byte " + glyphs(b[idx], n))
+tb("CH_WINCOL", [(32 - len(b[2])) // 2 for b in BIO]); tb("CH_LOSECOL", [(32 - len(b[3])) // 2 for b in BIO])
 chars = []
 for ci in range(1, 9):
     j = json.load(open(os.path.join(root, f"render/poses/char{ci}.json"))); chars.append(j)

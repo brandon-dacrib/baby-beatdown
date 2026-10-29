@@ -223,56 +223,58 @@ def skyline(c, y_base, seed, color, lit=(255, 220, 130), n=16, lo=20, hi=80):
     c.outline(m, k=0.6)
     return m
 
-# ------------------------------------------------------------------ 1 BAYOU DOCK (Ken's harbour, at dusk)
+# ------------------------------------------------------------------ 1 LOS ANGELES: Venice Beach boardwalk at sunset
+# Brandon is Creole, born in Los Angeles: palms, the Pacific, a pier, muscle-beach spectators, skate rails.
 def bayou():
-    c = Canvas(seed=11); SKY[1] = ((255, 128, 72), (250, 196, 128))
-    sun(c, 300, 70, 20); c.sun_haze(300, 70, 60, (255, 230, 180), 0.0)
-    clouds(c, [(70, 30, 34), (210, 22, 26), (340, 40, 30)], (255, 236, 214), (236, 170, 120))
-    # far cypress line
-    far = c.mask(); rng = np.random.default_rng(3)
-    for i in range(34):
-        x = i * 12 + 2 + rng.integers(0, 5); h = 22 + rng.integers(0, 26)
-        far |= c.poly([(x - 7, 118), (x + 7, 118), (x + 3, 118 - h * 0.5), (x + 1, 118 - h), (x - 1, 118 - h), (x - 3, 118 - h * 0.5)])
-    c.fill(far, (80, 100, 96), c.foliage(4), 0.25, vgrad=(90, 118, 0.95, 1.1))
-    # water
-    water = c.rect(0, 118, W - 1, FLOOR0 - 1)
-    wn = c.value_noise(9, 21, octaves=2, aspect=0.25)
-    c.fill(water, (66, 118, 128), wn, 0.35, vgrad=(118, FLOOR0, 1.15, 0.8))
+    c = Canvas(seed=11); SKY[1] = ((255, 120, 80), (255, 210, 140))
+    sun(c, 300, 78, 22, (255, 250, 210), (255, 220, 150))
+    clouds(c, [(60, 28, 36), (190, 20, 30), (330, 36, 26)], (255, 236, 214), (240, 160, 120))
+    hills(c, 100, 112, 10, (150, 120, 140), 2, period=1.1)                                   # Santa Monica mountains, hazy
+    # ocean with a sun path, the pier on the right
+    water = c.rect(0, 108, W - 1, 142); wn = c.value_noise(9, 21, octaves=2, aspect=0.25)
+    c.fill(water, (60, 130, 170), wn, 0.3, vgrad=(108, 142, 1.1, 0.85))
     yy, xx = np.mgrid[0:H, 0:W]
-    c.fill(water & (np.abs(xx - 300) < 16 - (yy - 118) * 0.2) & (((xx * 3 + yy * 5) % 7) < 3), (245, 200, 130))
-    c.fill(water & (((xx // 2 + yy * 3) % 11) == 0) & (wn > 0.12), (170, 220, 210))
-    # moored boat with a crowd (Ken's dock)
-    hull = c.poly([(120, 150), (268, 150), (284, 128), (250, 122), (118, 122), (104, 132)])
-    c.fill(hull, (222, 222, 230), c.wood(5, 99, True, 0.15), 0.25, vgrad=(122, 150, 1.05, 0.8)); c.shade(hull, (-1, -1), 1.15, 0.6, 2)
-    c.fill(c.rect(104, 130, 284, 133) & hull, (60, 80, 140)); c.outline(hull, k=0.45)
-    cabin = c.rect(150, 96, 230, 122); c.fill(cabin, (236, 236, 240), c.wood(6, 99, True, 0.1), 0.15); c.shade(cabin, (-1, -1), 1.15, 0.65, 2)
-    window(c, 158, 102, 178, 116, (60, 70, 120), (120, 170, 200)); window(c, 200, 102, 220, 116, (60, 70, 120), (120, 170, 200))
-    c.outline(cabin, k=0.5)
-    crowd(c, [(135, 124, 40, dict(skin="brown", shirt=(230, 60, 60), pants=(60, 60, 120), hair=(30, 20, 20), pose="cheer")),
-              (170, 124, 42, dict(skin="ivory", shirt=(250, 250, 250), pants=(70, 90, 140), hat=("cap", (40, 60, 140)), pose="lean")),
-              (238, 124, 40, dict(skin="tan", shirt=(60, 160, 90), pants=(150, 110, 70), hair=(90, 50, 30), pose="stand")),
-              (262, 124, 36, dict(skin="dark", shirt=(240, 200, 60), pants=(50, 50, 60), hair=(20, 16, 18), pose="cheer", flip=True))])
-    # the shack on the left and its porch rail
-    wall = c.rect(0, 58, 96, 156)
-    c.fill(wall, (124, 96, 66), c.wood(12, 11, True, 0.22), 0.6, vgrad=(58, 156, 1.0, 0.86))
-    roof = c.poly([(0, 60), (110, 60), (106, 44), (0, 38)]); c.fill(roof, (110, 72, 56), c.wood(13, 6, True), 0.55); c.shade(roof, (-1, -1), 1.25, 0.6, 2); c.shadow(roof, 0, 6, 0.6)
-    window(c, 22, 80, 60, 116, (84, 110, 96), (120, 74, 40), lit=True)
-    for px in (6, 100):
-        post = c.rect(px, 60, px + 6, 156); c.fill(post, (140, 110, 76), c.wood(15, 99, False), 0.45); c.shade(post, (-1, 0), 1.2, 0.55, 2); c.outline(post, k=0.5)
-    rail = c.rect(0, 122, 106, 126); c.fill(rail, (150, 118, 80), c.wood(16, 99, True), 0.4); c.shade(rail, (0, -1), 1.2, 0.6)
-    person(c, 40, 156, 44, "dark", (80, 120, 200), (60, 50, 50), hair=(20, 16, 18), pose="lean")
-    lantern(c, 92, 72, 6)
-    # big cypress on the right with roots and moss
-    trunk = c.poly([(322, FLOOR0), (372, FLOOR0), (364, 110), (360, 50), (360, 0), (340, 0), (340, 50), (330, 110)])
-    c.fill(trunk, (96, 70, 48), c.wood(7, 99, False, 0.3), 0.6, vgrad=(0, FLOOR0, 0.9, 1.05)); c.shade(trunk, (-1, 0), 1.18, 0.55, 3)
-    roots = c.poly([(306, FLOOR0), (384, FLOOR0), (384, 134), (370, 146), (360, 138), (348, 148), (336, 140)])
-    c.fill(roots, (88, 62, 42), c.wood(8, 99, False), 0.5); c.shade(roots, (-1, -1), 1.15, 0.6, 2); c.outline(trunk | roots, k=0.5)
-    for i in range(9):
-        x = 300 + i * 9; strand = c.poly([(x, 0), (x + 3, 0), (x + 2 + (i % 2), 26 + i * 5), (x + 1, 26 + i * 5)])
-        c.fill(strand, (120, 150, 110), c.grain(i), 0.3)
-    barrel(c, 296, FLOOR0 + 14, 22, 30); crate(c, 0, FLOOR0 - 26, 30, FLOOR0 + 2)
-    floor_planks(c, (156, 118, 74), (0.55, 0.5, 0.42), along=False, seed=14)
-    lantern(c, 92, 72, 6, glow=False)
+    c.fill(water & (np.abs(xx - 300) < 18 - (yy - 108) * 0.3) & (((xx * 3 + yy * 5) % 7) < 3), (255, 210, 140))
+    c.fill(water & (((xx // 2 + yy * 3) % 11) == 0) & (wn > 0.12), (190, 230, 240))
+    surf = water & (yy >= 138) & (((xx + yy * 2) % 9) < 4); c.fill(surf, (235, 245, 250))
+    pier = c.rect(250, 96, 384, 104); c.fill(pier, (120, 90, 60), c.wood(5, 99, True, 0.3), 0.4); c.shade(pier, (0, -1), 1.2, 0.6, 1); c.outline(pier, k=0.5)
+    for px in range(262, 384, 24):
+        post = c.rect(px, 104, px + 3, 140); c.fill(post, (90, 66, 44)); c.outline(post, k=0.5)
+    wheel = c.circle(330, 60, 30) & ~c.circle(330, 60, 26); c.fill(wheel, (240, 240, 250))
+    for k in range(8):
+        a_ = k * math.pi / 4; sp = c.line_mask(330, 60, 330 + math.cos(a_) * 28, 60 + math.sin(a_) * 28, 2); c.fill(sp, (230, 230, 240))
+        c.fill(c.circle(330 + math.cos(a_) * 28, 60 + math.sin(a_) * 28, 3), [(240, 80, 90), (255, 200, 60), (90, 180, 240)][k % 3])
+    c.fill(c.rect(328, 60, 332, 96), (200, 200, 210)); c.outline(wheel, k=0.5)
+    # beach, the boardwalk wall with graffiti, lifeguard tower
+    sand = c.rect(0, 142, W - 1, FLOOR0 - 1); c.fill(sand, (236, 212, 160), c.value_noise(5, 8, octaves=2), 0.2)
+    wall = c.rect(0, 126, 150, FLOOR0 - 1); c.fill(wall, (220, 220, 230), c.bricks(16, 6, -0.35, 3), 0.3); c.shade(wall, (-1, -1), 1.15, 0.7, 2)
+    for (x, w_, col) in ((8, 30, (240, 80, 140)), (44, 22, (80, 200, 230)), (72, 36, (255, 210, 60)), (114, 28, (120, 220, 90))):
+        tag = c.ellipse(x + w_ / 2, 140, w_ / 2, 7); c.fill(tag, col); c.outline(tag, k=0.5)
+    c.outline(wall, k=0.5)
+    tower = c.rect(166, 100, 206, 128); c.fill(tower, (90, 150, 220), c.wood(6, 7, True, 0.2), 0.3); c.shade(tower, (-1, -1), 1.2, 0.65, 2)
+    c.fill(c.rect(166, 96, 210, 101), (240, 240, 250)); window(c, 174, 106, 198, 120, (240, 240, 250), (140, 200, 230), bars=False)
+    legs = c.rect(168, 128, 171, 150) | c.rect(201, 128, 204, 150); c.fill(legs, (60, 100, 160)); c.outline(tower | legs, k=0.5)
+    # palm trees framing the stage
+    for (x, h, lean) in ((40, 150, -1), (350, 140, 1), (230, 120, -1)):
+        trunk = c.poly([(x - 5, FLOOR0), (x + 5, FLOOR0), (x + lean * 12 + 3, FLOOR0 - h), (x + lean * 12 - 3, FLOOR0 - h)])
+        c.fill(trunk, (150, 110, 70), c.wood(x, 6, True, 0.3), 0.45); c.shade(trunk, (-1, 0), 1.2, 0.6, 2); c.outline(trunk, k=0.5)
+        tx, ty = x + lean * 12, FLOOR0 - h
+        for k in range(7):
+            a_ = -math.pi + k * math.pi / 6
+            frond = c.poly([(tx, ty), (tx + math.cos(a_) * 34, ty + math.sin(a_) * 18 + 10), (tx + math.cos(a_ + 0.3) * 26, ty + math.sin(a_ + 0.3) * 14 + 14)])
+            c.fill(frond, (60, 150, 70), c.foliage(k), 0.3); c.shade(frond, (-1, -1), 1.2, 0.7, 1); c.outline(frond, k=0.55)
+        c.fill(c.circle(tx, ty + 4, 4), (140, 100, 50))
+    # the muscle-beach crowd on the sand
+    crowd(c, [(60, FLOOR0 - 2, 44, dict(skin="brown", shirt=(255, 200, 60), pants=(60, 60, 120), hair=(20, 16, 18), pose="cheer")),
+              (104, FLOOR0 - 2, 40, dict(skin="tan", shirt=(240, 60, 90), pants=(240, 240, 250), hat=("cap", (40, 60, 160)), pose="lean")),
+              (284, FLOOR0 - 2, 42, dict(skin="dark", shirt=(60, 200, 230), pants=(50, 50, 60), hair=(20, 16, 18), pose="cheer", flip=True)),
+              (318, FLOOR0 - 2, 38, dict(skin="ivory", shirt=(250, 250, 250), pants=(230, 120, 60), hair=(220, 180, 80), pose="stand", flip=True))])
+    # a skate rail and a surfboard
+    rail = c.rect(132, FLOOR0 - 12, 192, FLOOR0 - 9) | c.rect(134, FLOOR0 - 9, 137, FLOOR0) | c.rect(187, FLOOR0 - 9, 190, FLOOR0)
+    c.fill(rail, (200, 200, 215)); c.outline(rail, k=0.5)
+    board = c.ellipse(346, FLOOR0 - 2, 8, 26); c.fill(board, (255, 120, 60)); c.fill(c.rect(345, FLOOR0 - 24, 347, FLOOR0 + 18) & board, (255, 230, 120)); c.outline(board, k=0.5)
+    barrel(c, 16, FLOOR0 + 14, 22, 30, (90, 140, 200), (200, 200, 210))
+    floor_planks(c, (190, 150, 100), (0.55, 0.5, 0.45), along=False, seed=14)
     return c
 
 # ------------------------------------------------------------------ 2 BACKYARD (Guile's crowd at the fence)

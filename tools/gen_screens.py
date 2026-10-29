@@ -26,7 +26,7 @@ def bgr555(rgb):
 SKY = {1: ((255, 128, 72), (250, 196, 128)), 2: ((78, 140, 236), (196, 226, 250)), 3: ((6, 8, 36), (84, 44, 112)),
        4: ((132, 186, 240), (240, 232, 208)), 5: ((84, 156, 238), (212, 238, 250)), 6: ((16, 10, 12), (62, 40, 34)),
        7: ((250, 168, 192), (255, 240, 214)), 8: ((214, 244, 160), (124, 200, 96)), 9: ((6, 6, 60), (26, 30, 110))}
-STAGE_NAMES = ["BAYOU", "YARD", "ROOF", "FARM", "POND", "CAVE", "GARDEN", "LEAF"]
+STAGE_NAMES = ["LA", "OHIO", "NYC", "IOWA", "MINN", "KENTUCKY", "GEORGIA", "FLORIDA"]   # where each baby fights (tools/select_bg.py)
 # ambient configuration per stage (adapted from toy/ambient.lua):
 #   bands: (y0, y1, kind, amp_shift, ystep, speed) -> per-scanline BG1 horizontal scroll (kind 0 sine, 1 drift)
 #   cycle: (target rgb, amplitude 0..255, speed) -> the nearest palette colour breathes
@@ -258,8 +258,29 @@ def bubble(x, y):
 def glob(x, y):
     if ins(x, y, 9, 8, 6, 4) or ins(x, y, 3, 8, 2.5, 2): return LGREEN if y < 7 else GREEN
     return 0
-CELLS = [("CROWD_A", crowd_baby(0, BROWN, RED, DARK, False, DARK)), ("CROWD_A2", crowd_baby(1, BROWN, RED, DARK, True, DARK)),
-         ("CROWD_B", crowd_baby(0, PINK, GREEN, ORANGE, False, RED)), ("CROWD_B2", crowd_baby(1, PINK, GREEN, ORANGE, True, RED)),
+def obj_barrel():
+    body = ell(16, 16, 10, 14)
+    idx = paint((body, BROWN), (body & ((yy == 7) | (yy == 16) | (yy == 25)), DGREY), (body & (xx < 10), ORANGE if False else BROWN))
+    idx[body & (xx <= 9)] = DARK if False else BROWN
+    idx[body & ((xx == 11) | (xx == 20))] = DARK
+    idx[body & (xx <= 8)] = DARK if False else BROWN
+    idx[body & (xx < 12) & ~((yy == 7) | (yy == 16) | (yy == 25))] = ORANGE
+    return outline(idx)
+def obj_crate():
+    body = box(4, 6, 27, 29)
+    idx = paint((body, ORANGE), (box(4, 6, 27, 8) | box(4, 27, 27, 29) | box(4, 6, 6, 29) | box(25, 6, 27, 29), BROWN))
+    for i in range(23):
+        idx[6 + i, 4 + i] = BROWN; idx[6 + i, 27 - i] = BROWN
+    return outline(idx)
+def obj_pot():
+    body = ell(16, 20, 11, 10) | box(10, 6, 21, 11)
+    idx = paint((body, YELLOW), (body & (xx > 20), ORANGE), (box(10, 6, 21, 8), ORANGE))
+    return outline(idx)
+def obj_dew():
+    body = ell(16, 18, 9, 11) | ((np.abs(xx - 16) <= (yy - 4) * 0.6) & (yy >= 4) & (yy < 14))
+    idx = paint((body, LBLUE), (ell(13, 14, 2.5, 3), WHITE), (body & (xx > 20) & (yy > 16), BLUE))
+    return outline(idx)
+CELLS = [("BARREL", obj_barrel()), ("CRATE", obj_crate()), ("POT", obj_pot()), ("DEW", obj_dew()),
          ("BIRD0", bird(True)), ("BIRD1", bird(False)), ("BFLY0", butterfly(True)), ("BFLY1", butterfly(False)),
          ("CANDLE0", candle(0)), ("SHADOW", shadow()), ("SPARK0", spark(0)), ("SPARK1", spark(1))]
 CELLS += [(f"PROJ{i}", toy_cell(i)) for i in range(8)]
@@ -275,6 +296,63 @@ Image.fromarray(sheet).resize((sheet.shape[1] * 2, 64), 0).save(os.path.join(roo
 logo_img = np.zeros((24, 208, 3), np.uint8); logo_img[:] = (30, 30, 60)
 for c in range(1, 6): logo_img[buf == c] = LOGO_PAL[c - 1]
 Image.fromarray(logo_img).resize((416, 48), 0).save(os.path.join(root, "render", "logo_preview.png"))
+
+# ---------------------------------------------------------------- bonus stage: the crib, three damage states (64x64, own 15-colour palette)
+CRIB_PAL = [(40, 24, 20), (120, 70, 40), (170, 110, 60), (214, 160, 100), (240, 200, 150), (250, 240, 230), (200, 200, 210),
+            (120, 120, 140), (240, 120, 140), (255, 220, 90), (90, 160, 220), (60, 40, 30), (255, 255, 255), (255, 150, 60), (80, 80, 90)]
+CDK, CWOOD, CWOOD2, CWOOD3, CLITE, CSHEET, CGREY, CDGREY, CPINK, CYEL, CBLUE, CBROWN, CWHITE, CORANGE, CSTEEL = range(1, 16)
+y64, x64 = np.mgrid[0:64, 0:64]
+def cbox(x0, y0, x1, y1): return (x64 >= x0) & (x64 <= x1) & (y64 >= y0) & (y64 <= y1)
+def crib_state(state):
+    idx = np.zeros((64, 64), np.int32)
+    def put(m, c): idx[m] = c
+    def bar(x, y0, y1, c=CWOOD2):
+        put(cbox(x, y0, x + 2, y1), c); put(cbox(x, y0, x, y1), CWOOD3)
+    if state < 2:
+        # legs, mattress, front and back rails, bars (some missing when cracked)
+        put(cbox(4, 56, 9, 63), CWOOD); put(cbox(54, 56, 59, 63), CWOOD)
+        put(cbox(2, 40, 61, 56), CWOOD2); put(cbox(2, 40, 61, 42), CWOOD3)      # mattress box
+        put(cbox(6, 44, 57, 52), CSHEET); put(cbox(6, 44, 57, 45), CWHITE)
+        put(cbox(12, 46, 22, 50), CPINK); put(cbox(36, 47, 44, 50), CBLUE)        # pillow and blanket
+        put(cbox(2, 8, 61, 11), CWOOD3); put(cbox(2, 8, 61, 8), CLITE)             # top rail
+        put(cbox(2, 8, 5, 56), CWOOD); put(cbox(58, 8, 61, 56), CWOOD)             # posts
+        put(cbox(1, 2, 6, 8), CYEL); put(cbox(57, 2, 62, 8), CYEL)                 # finials
+        gone = {2, 5} if state == 1 else set()
+        for i in range(8):
+            if i not in gone: bar(9 + i * 6, 11, 40)
+        if state == 1:   # cracks and a broken bar hanging
+            for k in range(14): idx[14 + k, 30 + (k % 3)] = CDK
+            put(cbox(20, 30, 23, 40), CWOOD2); idx[31:40, 21] = CDK
+            put(cbox(26, 50, 34, 55), CDK)
+    else:
+        # collapsed: a pile of rails, bars and the mattress, finials rolled away
+        put(cbox(4, 50, 60, 63), CWOOD2); put(cbox(4, 50, 60, 51), CWOOD3)
+        put(cbox(8, 42, 52, 50), CSHEET); put(cbox(14, 44, 24, 48), CPINK)
+        for k, (x, y, w) in enumerate(((6, 36, 20), (30, 34, 26), (16, 28, 18), (40, 26, 16))):
+            put(cbox(x, y, x + w, y + 3), CWOOD3); put(cbox(x, y, x + w, y), CLITE)
+        for k in range(5): put(cbox(10 + k * 9, 20 + (k % 2) * 4, 12 + k * 9, 40), CWOOD2)
+        put(cbox(2, 56, 7, 61), CYEL); put(cbox(56, 57, 61, 62), CYEL)
+        put(cbox(28, 14, 34, 20), CDGREY); put(cbox(30, 10, 32, 14), CDGREY)        # a puff of dust
+    # outline
+    on = idx != 0
+    edge = np.zeros_like(on)
+    for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        sh = np.roll(np.roll(on, dy, 0), dx, 1); edge |= on & ~sh
+    idx[edge] = CDK
+    return idx
+def pose_block(idx):
+    """64x64 index grid -> 8 tile rows x 8 tiles (2048 bytes), the fighter pose layout"""
+    out = b""
+    for ty in range(8):
+        for tx in range(8): out += encode_tile(idx[ty * 8:ty * 8 + 8, tx * 8:tx * 8 + 8])
+    return out
+crib = b"".join(pose_block(crib_state(st)) for st in range(3))
+blob("crib_tiles", "crib.bin", crib)
+cs = np.zeros((64, 192, 3), np.uint8); cs[:] = (40, 40, 70)
+for st in range(3):
+    g = crib_state(st)
+    for c in range(1, 16): cs[:, st * 64:(st + 1) * 64][g == c] = CRIB_PAL[c - 1]
+Image.fromarray(cs).resize((576, 192), 0).save(os.path.join(root, "render", "crib_preview.png"))
 
 # ---------------------------------------------------------------- bank packing (banks 30.. of a 2 MB LoROM)
 BANK0 = 30; BANKSZ = 0x8000
@@ -369,6 +447,7 @@ for n in range(1, 10):
 inc.append("AMB_TAB:\n  .word 0, " + ", ".join(f".loword(AMB_{n})" for n in range(1, 10)))
 
 inc.append("LOGO_PAL:\n  .word " + ", ".join(str(bgr555(c)) for c in LOGO_PAL))
+inc.append("CRIB_PAL:\n  .word " + ", ".join(str(bgr555(c)) for c in CRIB_PAL))
 inc.append("FX_PAL:\n  .word " + ", ".join(str(bgr555(c)) for c in FX_PAL))
 for i, (name, _) in enumerate(CELLS): inc.append(f"FX_{name} = {i}")
 inc.append("FACE_PALS:")
@@ -378,7 +457,7 @@ inc.append("FACE_BANK:\n  .byte " + ", ".join(f"^face{i}_tiles" for i in range(1
 inc.append("ICON_TAB:\n  .word " + ", ".join(f".loword(icon{i}_tiles)" for i in range(1, 9)))
 inc.append("ICON_BANK:\n  .byte " + ", ".join(f"^icon{i}_tiles" for i in range(1, 9)))
 # select map labels: (col, row) per stage and the names as glyph ids (8 bytes, 0 padded)
-LOC = [(1, 10), (7, 7), (11, 3), (13, 9), (17, 6), (20, 11), (24, 5), (27, 10)]
+LOC = [(1, 9), (20, 3), (24, 2), (13, 7), (15, 2), (17, 8), (21, 10), (22, 12)]
 inc.append("SEL_LOC_COL:\n  .byte " + ", ".join(str(c) for c, r in LOC))
 inc.append("SEL_LOC_ROW:\n  .byte " + ", ".join(str(r) for c, r in LOC))
 inc.append("STAGE_NAME:")

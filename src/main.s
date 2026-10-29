@@ -19,6 +19,7 @@ ST_BLOCK = 6
 ST_KO = 7
 ST_SUPER = 8
 ST_WIN = 9
+ST_DOWN = 10              ; swept off the feet: lying, then getting up (cannot be hit)
 X_MIN = 256
 X_MAX = (384 - 16) * 16                 ; the arena is 384 px wide; the camera shows 256 of it
 WORLD_W = 384
@@ -216,6 +217,17 @@ cur_pad:    .res 2
 p1_done:    .res 2
 demo_moves: .res 2
 cam:        .res 2      ; camera x (px) into the 384 px arena
+h_sweep:    .res 2      ; the landing hit is a low kick: knock the defender down
+fcombo:     .res 4      ; chain step of the current attack (1 = first move)
+combo_t:    .res 2      ; "N HIT COMBO" display timer
+combo_n:    .res 2
+combo_side: .res 2
+ob_on:      .res 4      ; breakable objects: 0 gone, 1 standing, 2 bursting
+ob_x:       .res 4      ; world x (px) of the centre
+ob_t:       .res 4
+ob_cell:    .res 2
+ob_att:     .res 2
+bonus:      .res 2      ; 1 = bonus stage (fighter 2 is the crib)
 hb_base:    .res 2
 hb_acc:     .res 2
 
@@ -1126,6 +1138,11 @@ nmi:
 .endproc
 ; A = attack box id, X = attacker: A = hurt slot hit or 0 (bx/by = box centre)
 .proc hit_box
+  jsr attack_box
+  jmp hurt_tests
+.endproc
+; A = attack box id, X = attacker: bx/by (world px, height above the feet), bw/bh half sizes
+.proc attack_box
   sta tmp3                  ; b
   tay
   ldsby ABOX_CX
@@ -1152,6 +1169,9 @@ nmi:
   sta bw
   ldby ABOX_HH
   sta bh
+  rts
+.endproc
+.proc hurt_tests
   ldx def
   lda fboxset,x
   tay
@@ -1357,6 +1377,8 @@ nmi:
 .proc start_move
   sta fmove,x
   sta flast,x
+  lda #1
+  sta fcombo,x
   lda #ST_ATTACK
   sta fstate,x
   stz ftimer,x
@@ -1516,6 +1538,17 @@ nmi:
   lda #SMP_SNARE
   jsr sfx_play
   ldy att
+  lda fcombo,y
+  cmp #2
+  bcc :+
+  sta combo_n
+  sty combo_side
+  lda #50
+  sta combo_t
+  phx
+  jsr draw_combo
+  plx
+:  ldy att
   lda fmeter,y
   clc
   adc #12
@@ -1542,6 +1575,24 @@ nmi:
 : lda #SC_GUT
 @scr:
   jsr set_script
+  lda h_sweep
+  beq @no_sweep
+  stz h_sweep
+  lda #ST_DOWN
+  sta fstate,x
+  stz ftimer,x
+  lda #$FFC8                ; -56: a short hop before the fall
+  sta fvy,x
+  lda fface,x
+  bmi :+
+  lda #$FFC0
+  bra @sv
+: lda #64
+@sv:
+  sta fvx,x
+  lda #SC_FALL
+  jsr set_script
+@no_sweep:
   lda fhp,x
   bne @done
   lda #ST_KO
@@ -1658,6 +1709,9 @@ nmi:
 : cmp #ST_SUPER
   bne :+
   jmp super_state
+: cmp #ST_DOWN
+  bne :+
+  jmp down_state
 : cmp #ST_HIT
   beq @stunned
   cmp #ST_BLOCK
@@ -1693,7 +1747,9 @@ nmi:
   inc a
   sta ftimer,x
 : jsr shoot_check
-  ldy tmp3
+  jsr combo_check           ; may start the next move of the chain
+  ldy fmove,x
+  sty tmp3
   ldby M_LUNGE
   beq @nolunge
   sta tmp2
@@ -1733,7 +1789,9 @@ nmi:
   lda factive,x
   bne :+
   brl @endcheck
-: ldy tmp3
+: jsr objects_check         ; active attacks break the stage props
+  ldy fmove,x
+  sty tmp3
   ldby M_HITS
   cmp fhitdone,x
   beq @skipchk
@@ -1743,8 +1801,10 @@ nmi:
 : ldy def
   lda fstate,y
   cmp #ST_KO
-  bne :+
-  brl @endcheck
+  beq :+
+  cmp #ST_DOWN
+  bne :++
+: brl @endcheck
 : jsr hit_test
   ldx att
   cmp #0
@@ -1779,6 +1839,13 @@ nmi:
   and #$0001
   sta h_low
   ldby M_FLAGS
+  and #$0010                ; a low kick (low, not a punch) sweeps
+  bne :+
+  lda h_low
+  sta h_sweep
+  bra :++
+: stz h_sweep
+: ldby M_FLAGS
   and #$0002
   lsr a
   sta h_high
@@ -2051,7 +2118,21 @@ nmi:
   asl a                     ; <<11
   ora #$8000
   sta spr_addr,x
-  lda #1
+  lda bonus
+  beq :+
+  cpx #2
+  bne :+
+  lda fcell,x               ; the crib: damage state 0..2 from crib_tiles
+  xba
+  asl a
+  asl a
+  asl a
+  clc
+  adc #.loword(crib_tiles)
+  sta spr_addr,x
+  lda #^crib_tiles
+  sta spr_bank,x
+: lda #1
   sta dirty,x
 @same:
   ; OAM entry X/2: x = fx>>4 - 32, y = FLOOR + fy>>4 - 64; hidden (x = 256) on odd flash frames

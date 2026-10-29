@@ -24,6 +24,8 @@ art and tuning data.
 | `src/spc.s` | SPC700 command server: volume / note on / note off per voice; samples at $0300, ADSR table at $0340 |
 | `src/lorom.cfg` | bank 0 code+data, banks 1..28 sprite data, bank 29 audio + songs, banks 30.. packed stage/screen data |
 | `tools/gen_asm.py` | `gen/data.inc` (moves, boxes, keyframe scripts, per-character tables), `gen/charN.bin` (56 poses x 2 KB), 2bpp HUD font (+ bracket corner glyph 49) |
+| `tools/sprite_detail.py` | detail pass over the dumped fighter poses (`render/poses_orig` -> `render/poses`): dithered tone boundaries, lit and shadow rims, fur speckle, diaper seam, and the cute-but-angry furrowed brows |
+| `tools/select_bg.py` | the player-select map: the United States with the eight stage locations |
 | `tools/scenes2.py` | paints the eight 384x224 arenas in the Street Fighter II recipe (sky band, tall middle layer with large spectators whose faces and lip colour follow their skin tone, flanking props, perspective floors); `render/stageN.png` |
 | `tools/gen_screens.py` | the nine paintings (stages 1..8 + the select map) as tiles/maps/palettes, title logo, 96x96 portraits + 32x32 icons, 32x32 effect cells (crowd, birds, butterflies, candles, shadow, sparks), sky gradient HDMA tables, per-stage ambient records, select labels; packs it all into 32 KB banks (`gen/screens.inc`) |
 | `tools/gen_audio.py` | synthesizes the 15 instruments, BRR-encodes them, converts all nine `toy/sources/songs/*.json` to `[delta frames][cmd][p1][p2][p3]` streams (48 ticks per beat) |
@@ -44,6 +46,19 @@ art and tuning data.
   the winner's flex/pump pose, best of three, "WINS THE MATCH" screen back to the title.
 - **Two players**: Start on pad 2 at the title joins; on the select screen pad 1 moves the yellow cursor, pad 2
   the red one, any button confirms each; the fight reads pad 2 for P2 instead of the CPU brain.
+- **Combos**: after a landed hit, punch or kick again starts the next move of the baby's chain (toy
+  `CHAINS`: jab > cross > uppercut and so on); an "N HIT COMBO" counter shows on the attacker's side. The CPU
+  chains too. **Sweeps** (low kicks) knock the opponent down: they fly back, lie for a moment (unhittable) and
+  get up. **Breakable props** (barrel, crate, pot or dewdrop, two per stage) burst under attacks and projectiles
+  and feed the meter.
+- **Bonus stage** after a one-player match win (or Select on the title to practise): 50 seconds to break the
+  crib. The crib is fighter 2's slot with its own tiles (`gen/crib.bin`, three damage states), its own
+  palette and health bar; PERFECT! when it goes down, TIME UP otherwise, then the title.
+- **Personalities**: every baby has a fighting style, a motivation (shown on the select screen) and win and
+  lose lines (shown at the match end); see `BIO` in `tools/gen_asm.py`. All eight are American: the select map
+  is the United States (Brandon, Creole and born in Los Angeles, fights on the Venice Beach boardwalk; Arlo in
+  Ohio, Dawn in New York City, Chris in Iowa, Isaac in Minnesota, Teddy in Kentucky, Pip in Georgia, Blue in
+  Florida).
 - **Supers** (A with a full meter): DIAPER DUMP, BINKY BLAST, BUBBLE BURP, TANTRUM TOSS and SPIT-UP SPRAY are
   projectiles (fired at frame 18 of the pose); BOTTLE BASH, RATTLE RAMPAGE (3 hits) and TEETHING CHOMP (hop)
   are rushes that test the rush box every 8 frames. **Crouch shots** (down + punch) for Brandon, Dawn, Isaac
@@ -94,5 +109,5 @@ file lands in `~/Library/Application Support/Mesen2/Saves/`.
 
 ## Not done yet
 
-- floor darkening toward the camera, breakable stage objects, voice samples
+- floor darkening toward the camera, voice samples, 96-pixel fighters (needs a 4 MB ROM or fewer poses)
 - audio only verified structurally (driver and samples land in SPC RAM, commands are acknowledged); nobody has listened yet

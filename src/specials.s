@@ -118,6 +118,8 @@
   lda fstate,y
   cmp #ST_KO
   beq @nohit
+  cmp #ST_DOWN
+  beq @nohit
   lda #ABOX_RUSH
   jsr hit_box
   ldx att
@@ -132,6 +134,7 @@
   sta h_stun
   stz h_low
   stz h_high
+  stz h_sweep
   jsr take_hit
   ldx att
 @nohit:
@@ -297,6 +300,9 @@
   cmp #290                  ; on screen: px - cam in -16..273
   bcc :+
   brl @kill
+:  jsr objects_projectile
+  beq :+
+  brl @kill
 :
   ; target body box
   txa
@@ -304,8 +310,10 @@
   tay
   lda fstate,y
   cmp #ST_KO
-  bne :+
-  brl @next
+  beq :+
+  cmp #ST_DOWN
+  bne :++
+: brl @next
 :
   lda fboxset,y
   phy
@@ -352,6 +360,7 @@
   sta h_stun
   stz h_low
   stz h_high
+  stz h_sweep
   lda #2
   sta h_slot
   lda tmp0
@@ -430,6 +439,18 @@
 
 ; CPU (X = fighter): throw the crouch shot from range now and then
 .proc cpu_special
+  lda fstate,x
+  cmp #ST_ATTACK
+  bne @not_chain
+  lda fhitdone,x
+  beq @not_chain
+  phx
+  jsr rnd8
+  plx
+  cmp #90
+  bcs @not_chain
+  inc in_punch,x            ; chain after a landed hit
+@not_chain:
   lda fchar,x
   dec a
   tay
@@ -458,5 +479,289 @@
   inc in_down,x
   inc in_punch,x
 @no:
+  rts
+.endproc
+
+; ST_DOWN: fly back, hit the floor, lie for a while, get up (X = fighter)
+.proc down_state
+  jsr physics
+  lda fy,x
+  bmi @ret                  ; still in the air
+  jsr decay_vx
+  inc ftimer,x
+  lda ftimer,x
+  cmp #36
+  bne :+
+  lda #SC_GETUP
+  jsr set_script
+: lda ftimer,x
+  cmp #50
+  bcc @ret
+  stz fstate,x
+  stz fvx,x
+  lda #SC_IDLE
+  jmp set_script
+@ret:
+  rts
+.endproc
+
+; in the attack state (X = fighter): after a landed hit, punch / kick starts the next chain move
+.proc combo_check
+  lda fhitdone,x
+  beq @no
+  lda fstate,x
+  cmp #ST_ATTACK
+  bne @no
+  ldy fmove,x
+  ldby M_FLAGS
+  and #$0004                ; air moves do not chain
+  bne @no
+  ldby M_STARTUP
+  cmp ftimer,x
+  bcs @no                   ; only once the move is past its startup
+  lda in_punch,x
+  bne @punch
+  lda in_kick,x
+  beq @no
+  lda fchar,x
+  dec a
+  asl a
+  adc fchar,x
+  dec a                     ; (char-1)*3
+  asl a                     ; *6
+  clc
+  adc fcombo,x
+  tay
+  ldby CH_CHAIN_K
+  bra @go
+@punch:
+  lda fchar,x
+  dec a
+  asl a
+  adc fchar,x
+  dec a
+  asl a
+  clc
+  adc fcombo,x
+  tay
+  ldby CH_CHAIN_P
+@go:
+  beq @no                   ; end of the chain
+  sta tmp0
+  lda fcombo,x
+  inc a
+  sta tmp1
+  lda tmp0
+  jsr start_move
+  lda tmp1
+  sta fcombo,x
+  stz in_punch,x
+  stz in_kick,x
+@no:
+  rts
+.endproc
+
+; "N HIT COMBO" on row 6, on the attacker's side
+.proc draw_combo
+  ldx #6 * 64 + 2 * 2
+  lda combo_side
+  beq :+
+  ldx #6 * 64 + 19 * 2
+: lda combo_n
+  clc
+  adc #27                   ; digit glyph (combos stay below 10)
+  ora #PAL6
+  sta bg3_shadow,x
+  inx
+  inx
+  inx
+  inx
+  lda #.loword(s_hitcombo)
+  sta ptr0
+  lda #PAL6
+  sta tmp4
+  jmp text_at
+.endproc
+s_hitcombo: .byte "HIT COMBO", $FF
+
+; ---------------------------------------------------------------- breakable stage props (OAM 8/9)
+.proc objects_reset
+  ldx #0
+: lda #1
+  sta ob_on,x
+  stz ob_t,x
+  inx
+  inx
+  cpx #4
+  bne :-
+  lda #40
+  sta ob_x
+  lda #344
+  sta ob_x+2
+  lda stage
+  dec a
+  tay
+  ldby STAGE_OBJ
+  clc
+  adc #FX_BARREL
+  sta ob_cell
+  rts
+.endproc
+
+; X = attacker in an active attack: burst any standing object under its attack box
+.proc objects_check
+  phx
+  stx ob_att
+  ldy fmove,x
+  ldby M_BOX
+  beq @done
+  jsr attack_box
+  ldx #0
+@o:
+  lda ob_on,x
+  cmp #1
+  bne @next
+  lda ob_x,x
+  sec
+  sbc bx
+  bpl :+
+  neg16
+: sec
+  sbc bw
+  bmi @ydist
+  cmp #12
+  bcs @next
+@ydist:
+  lda #16                   ; the prop's centre is 16 px above the floor
+  sec
+  sbc by
+  bpl :+
+  neg16
+: sec
+  sbc bh
+  bmi @hit
+  cmp #14
+  bcs @next
+@hit:
+  jsr object_burst
+  ldy ob_att
+  lda fmeter,y
+  clc
+  adc #12
+  cmp #METER_MAX
+  bcc :+
+  lda #METER_MAX
+: sta fmeter,y
+@next:
+  inx
+  inx
+  cpx #4
+  bne @o
+@done:
+  plx
+  rts
+.endproc
+
+; X = object slot: start its burst
+.proc object_burst
+  lda #2
+  sta ob_on,x
+  lda #14
+  sta ob_t,x
+  lda ob_x,x
+  sta bx
+  lda #16
+  sta by
+  lda #FX_SPARK0
+  jsr spawn_spark
+  lda #SMP_CRASH
+  jsr sfx_play
+  lda #SMP_TOM
+  jmp sfx_play
+.endproc
+
+; projectile at tmp0 (world px) / pj_y,x: returns A = 1 if it broke an object (X preserved)
+.proc objects_projectile
+  phx
+  ldy #0
+@o:
+  lda ob_on,y
+  cmp #1
+  bne @next
+  lda ob_x,y
+  sec
+  sbc tmp0
+  bpl :+
+  neg16
+: cmp #22
+  bcs @next
+  lda #FLOOR - 16
+  sec
+  sbc pj_y,x
+  bpl :+
+  neg16
+: cmp #20
+  bcs @next
+  tya
+  tax
+  jsr object_burst
+  plx
+  lda #1
+  rts
+@next:
+  iny
+  iny
+  cpy #4
+  bne @o
+  plx
+  lda #0
+  rts
+.endproc
+
+.proc draw_objects
+  ldx #0
+@o:
+  txa
+  lsr a
+  clc
+  adc #8
+  tay
+  lda ob_on,x
+  beq @hide
+  cmp #2
+  bne @show
+  dec ob_t,x
+  bne @hide                 ; bursting: the spark shows, the prop is gone
+  stz ob_on,x
+  bra @hide
+@show:
+  lda ob_x,x
+  sec
+  sbc cam
+  sec
+  sbc #16
+  and #$01FF
+  sta oa_x
+  lda #FLOOR - 32
+  sta oa_y
+  lda ob_cell
+  jsr fx_tile
+  sta oa_tile
+  lda #$24
+  sta oa_attr
+  stz oa_large
+  phx
+  jsr oam_set
+  plx
+  bra @next
+@hide:
+  phx
+  jsr hide_sprite
+  plx
+@next:
+  inx
+  inx
+  cpx #4
+  bne @o
   rts
 .endproc

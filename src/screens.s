@@ -83,6 +83,50 @@ GRID_Y = 112
   rts
 .endproc
 
+; tmp3 glyphs at ptr0 -> bg3_shadow + X, palette tmp4
+.proc text_n
+  ldy #0
+@l:
+  a8
+  lda (ptr0),y
+  a16
+  and #$00FF
+  ora tmp4
+  sta bg3_shadow,x
+  inx
+  inx
+  iny
+  cpy tmp3
+  bne @l
+  rts
+.endproc
+
+; A = character 1..8, tmp0 = table base (24-byte lines), tmp1 = column table -> centred line on row tmp2
+.proc char_line
+  dec a
+  sta sp_ch
+  asl a
+  asl a
+  asl a                     ; *8
+  sta tmp3
+  asl a                     ; *16
+  clc
+  adc tmp3                  ; *24
+  clc
+  adc tmp0
+  sta ptr0
+  ldy sp_ch
+  lda (tmp1),y
+  and #$00FF
+  asl a
+  clc
+  adc tmp2                  ; row offset
+  tax
+  lda #24
+  sta tmp3
+  jmp text_n
+.endproc
+
 ; A = character 1..8 -> ptr0 = its name
 .proc name_ptr
   dec a
@@ -388,6 +432,7 @@ GRID_Y = 112
   jsr hide_all
   stz demo
   stz two_p
+  stz bonus
   lda #MODE_TITLE
   sta mode
   stz mtimer
@@ -520,6 +565,15 @@ GRID_Y = 112
   sta two_p
   jsr sfx_select_c
   jmp go_select
+: lda pad_new
+  and #$2000                ; Select: straight to the bonus stage
+  beq :+
+  stz two_p
+  jsr rnd8
+  and #7
+  inc a
+  sta fchar
+  jmp bonus_start
 : jsr any_button
   beq :+
   stz two_p
@@ -963,6 +1017,46 @@ GRID_Y = 112
   sta tmp4
   jsr text_name
   lda sel_cur
+  dec a
+  sta tmp0
+  asl a
+  asl a
+  adc tmp0
+  asl a                     ; *10
+  adc tmp0
+  adc tmp0                  ; *12
+  clc
+  adc #.loword(CH_STYLE)
+  sta ptr0
+  lda #12
+  sta tmp3
+  ldx #21 * 64 + 12 * 2
+  lda #PAL7
+  sta tmp4
+  jsr text_n
+  lda sel_cur
+  dec a
+  sta tmp0
+  asl a
+  asl a
+  asl a
+  asl a                     ; *16
+  adc tmp0
+  adc tmp0
+  adc tmp0
+  adc tmp0
+  adc tmp0
+  adc tmp0                  ; *22
+  clc
+  adc #.loword(CH_MOTIVE)
+  sta ptr0
+  lda #22
+  sta tmp3
+  ldx #22 * 64 + 10 * 2
+  lda #PAL5
+  sta tmp4
+  jsr text_n
+  lda sel_cur
   lda #PAL5
   sta tmp4
   lda sel_cur
@@ -1307,6 +1401,8 @@ GRID_Y = 112
   stz pj_on
   stz pj_on+2
   stz callout_t
+  stz combo_t
+  jsr objects_reset
   rts
 @one:
   lda #HP_MAX
@@ -1342,6 +1438,89 @@ GRID_Y = 112
   sta demo
   stz two_p
   jmp go_select
+.endproc
+
+; the bonus stage: 50 seconds to break the crib (fighter 2's slot shows the crib's three damage states)
+.proc bonus_start
+  jsr fade_out
+  jsr hide_all
+  lda #1
+  sta bonus
+  stz demo
+  lda #2
+  sta fchar+2
+  jsr begin_fight
+  a8
+  lda #145
+  sta CGADD
+  a16
+  ldx #0
+: a8
+  lda CRIB_PAL,x
+  sta CGDATA
+  lda CRIB_PAL+1,x
+  sta CGDATA
+  a16
+  inx
+  inx
+  cpx #30
+  bne :-
+  jsr crib_name
+  lda #50
+  sta clock
+  rts
+.endproc
+.proc crib_name
+  ldx #2 * 64 + 24 * 2
+  lda #HUD_PAL_WORD
+  ldy #8
+: sta bg3_shadow,x
+  inx
+  inx
+  dey
+  bne :-
+  TEXT s_crib, 24, 2, PAL5
+  rts
+.endproc
+.proc clear_inputs_p2
+  stz in_left+2
+  stz in_right+2
+  stz in_up+2
+  stz in_down+2
+  stz in_punch+2
+  stz in_kick+2
+  stz in_super+2
+  rts
+.endproc
+; every frame of the bonus stage: the crib stays put and shows the damage state for its health
+.proc crib_update
+  lda #232 * 16
+  sta fx+2
+  stz fy+2
+  stz fvx+2
+  stz fvy+2
+  lda fhp+2
+  beq @broken
+  cmp #64
+  bcs @whole
+  lda #1
+  bra @st
+@whole:
+  lda #0
+  bra @st
+@broken:
+  lda #2
+@st:
+  sta fcell+2
+  lda fhp+2
+  beq :+
+  stz fstate+2
+  stz ftimer+2
+: lda #1
+  sta fboxset+2
+  lda #$FFFF
+  sta fface+2
+  rts
 .endproc
 
 ; fchar set: load the CPU's stage, first round
@@ -1412,7 +1591,9 @@ GRID_Y = 112
 @nodemo:
   lda round_st
   cmp #RS_FIGHT
-  beq @live
+  bne :+
+  brl @live
+:
   cmp #RS_INTRO
   beq @intro
   cmp #RS_END
@@ -1425,17 +1606,27 @@ GRID_Y = 112
   lda round_t
   cmp #1
   bne :+
+  lda bonus
+  bne @bintro
   TEXT s_round, 12, 10, PAL5
   lda round_num
   clc
   adc #27
   ora #PAL5
   sta bg3_shadow + 10 * 64 + 18 * 2
+  bra :+
+@bintro:
+  TEXT s_bonus, 10, 10, PAL5
 : lda round_t
   cmp #70
   bne :+
   CLEAR_ROW 10
+  lda bonus
+  bne @bgo
   TEXT s_fight, 13, 10, PAL6
+  bra :+
+@bgo:
+  TEXT s_breakit, 8, 10, PAL6
 : lda round_t
   cmp #110
   beq :+
@@ -1445,13 +1636,17 @@ GRID_Y = 112
   lda #RS_FIGHT
   sta round_st
   stz round_t
-  bra @update
+  brl @update
 @live:
   lda demo
   beq :+
   ldx #0
   jsr cpu_input
   jsr cpu_special
+: lda bonus
+  beq :+
+  jsr clear_inputs_p2
+  bra @in_done
 : lda two_p
   beq @cpu2
   ldx #2
@@ -1473,6 +1668,10 @@ GRID_Y = 112
   lda fhp+2
   bne :+
   lda #.loword(s_ko)
+  ldy bonus
+  beq @ko2
+  lda #.loword(s_perfect)
+@ko2:
   sta tmp3
   lda #0
   jmp fight_over
@@ -1505,20 +1704,31 @@ GRID_Y = 112
 @update:
   ldx #0
   jsr update_fighter
+  lda bonus
+  bne :+
   ldx #2
   jsr update_fighter
-  jsr separate
-  jsr update_camera
+: jsr separate
+  lda bonus
+  beq :+
+  jsr crib_update
+: jsr update_camera
   jsr update_projectiles
   jsr draw_fighters
   jsr draw_shadows
   jsr draw_sparks
   jsr draw_projectiles
+  jsr draw_objects
   lda callout_t
   beq :+
   dec callout_t
   bne :+
   CLEAR_ROW 8
+: lda combo_t
+  beq :+
+  dec combo_t
+  bne :+
+  CLEAR_ROW 6
 : jmp draw_hud
 @end:
   jsr clear_inputs
@@ -1535,7 +1745,10 @@ GRID_Y = 112
   cmp #60
   bne :+
   CLEAR_ROW 10
-  lda winner
+  lda bonus
+  beq :+
+  jmp go_title
+: lda winner
   bmi :+
   tax
   lda fstate,x
@@ -1580,14 +1793,30 @@ GRID_Y = 112
   ldx #10 * 64 + 4 * 2
   jsr text_name
   TEXT s_winsmatch, 12, 10, PAL5
-  lda two_p
-  beq :+
-  brl @update
-: lda winner
-  bne :+
-  TEXT s_naptime, 5, 12, PAL7
-  brl @update
-: TEXT s_waaah, 7, 12, PAL7
+  ldx winner
+  ldy #.loword(CH_WINLINE)
+  sty tmp0
+  ldy #.loword(CH_WINCOL)
+  sty tmp1
+  ldy #12 * 64
+  sty tmp2
+  lda #PAL7
+  sta tmp4
+  lda fchar,x
+  jsr char_line
+  lda winner
+  eor #2
+  tax
+  ldy #.loword(CH_LOSELINE)
+  sty tmp0
+  ldy #.loword(CH_LOSECOL)
+  sty tmp1
+  ldy #14 * 64
+  sty tmp2
+  lda #PAL6
+  sta tmp4
+  lda fchar,x
+  jsr char_line
   brl @update
 @next:
   inc round_num
@@ -1607,6 +1836,15 @@ GRID_Y = 112
   brl @update
 :
 @to_title:
+  lda bonus
+  bne @done_bonus
+  lda demo
+  ora two_p
+  bne @done_bonus
+  lda winner
+  bne @done_bonus
+  jmp bonus_start           ; a human win: the bonus stage
+@done_bonus:
   jmp go_title
 .endproc
 
@@ -2535,3 +2773,7 @@ s_winsmatch: .byte "WINS THE MATCH", $FF
 s_naptime:  .byte "NAP TIME FOR THE CPU!", $FF
 s_waaah:    .byte "WAAAH! TRY AGAIN!", $FF
 s_demo:     .byte "DEMO - PUSH START", $FF
+s_bonus:    .byte "BONUS STAGE", $FF
+s_breakit:  .byte "BREAK THE CRIB!", $FF
+s_perfect:  .byte "PERFECT!", $FF
+s_crib:     .byte "CRIB", $FF

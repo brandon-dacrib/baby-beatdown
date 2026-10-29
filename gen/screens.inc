@@ -2,6 +2,13 @@
 .segment "DATA30"
 stage1_tiles: .incbin "../gen/stage1.bin"
 stage1_tiles_end:
+icon1_tiles: .incbin "../gen/icon1.bin"
+icon1_tiles_end:
+icon2_tiles: .incbin "../gen/icon2.bin"
+icon2_tiles_end:
+icon3_tiles: .incbin "../gen/icon3.bin"
+icon3_tiles_end:
+.segment "DATA31"
 stage1_map: .incbin "../gen/stage1.map"
 stage1_map_end:
 stage1_pal: .incbin "../gen/stage1.pal"
@@ -10,83 +17,76 @@ stage2_map: .incbin "../gen/stage2.map"
 stage2_map_end:
 stage2_pal: .incbin "../gen/stage2.pal"
 stage2_pal_end:
-icon1_tiles: .incbin "../gen/icon1.bin"
-icon1_tiles_end:
-icon2_tiles: .incbin "../gen/icon2.bin"
-icon2_tiles_end:
-icon3_tiles: .incbin "../gen/icon3.bin"
-icon3_tiles_end:
-.segment "DATA31"
+stage3_map: .incbin "../gen/stage3.map"
+stage3_map_end:
+stage3_pal: .incbin "../gen/stage3.pal"
+stage3_pal_end:
+stage4_map: .incbin "../gen/stage4.map"
+stage4_map_end:
+stage4_pal: .incbin "../gen/stage4.pal"
+stage4_pal_end:
+stage5_map: .incbin "../gen/stage5.map"
+stage5_map_end:
+stage5_pal: .incbin "../gen/stage5.pal"
+stage5_pal_end:
+stage6_map: .incbin "../gen/stage6.map"
+stage6_map_end:
+stage6_pal: .incbin "../gen/stage6.pal"
+stage6_pal_end:
+stage7_map: .incbin "../gen/stage7.map"
+stage7_map_end:
+stage7_pal: .incbin "../gen/stage7.pal"
+stage7_pal_end:
+logo_tiles: .incbin "../gen/logo.bin"
+logo_tiles_end:
+.segment "DATA32"
 stage2_tiles: .incbin "../gen/stage2.bin"
 stage2_tiles_end:
 icon4_tiles: .incbin "../gen/icon4.bin"
 icon4_tiles_end:
 icon5_tiles: .incbin "../gen/icon5.bin"
 icon5_tiles_end:
-.segment "DATA32"
+.segment "DATA33"
 stage3_tiles: .incbin "../gen/stage3.bin"
 stage3_tiles_end:
 icon6_tiles: .incbin "../gen/icon6.bin"
 icon6_tiles_end:
-.segment "DATA33"
-stage3_map: .incbin "../gen/stage3.map"
-stage3_map_end:
-stage3_pal: .incbin "../gen/stage3.pal"
-stage3_pal_end:
+.segment "DATA34"
 stage4_tiles: .incbin "../gen/stage4.bin"
 stage4_tiles_end:
-stage4_map: .incbin "../gen/stage4.map"
-stage4_map_end:
-stage4_pal: .incbin "../gen/stage4.pal"
-stage4_pal_end:
-.segment "DATA34"
+stage8_map: .incbin "../gen/stage8.map"
+stage8_map_end:
+stage8_pal: .incbin "../gen/stage8.pal"
+stage8_pal_end:
+stage9_map: .incbin "../gen/stage9.map"
+stage9_map_end:
+stage9_pal: .incbin "../gen/stage9.pal"
+stage9_pal_end:
+.segment "DATA35"
 stage5_tiles: .incbin "../gen/stage5.bin"
 stage5_tiles_end:
 icon7_tiles: .incbin "../gen/icon7.bin"
 icon7_tiles_end:
 icon8_tiles: .incbin "../gen/icon8.bin"
 icon8_tiles_end:
-.segment "DATA35"
-stage5_map: .incbin "../gen/stage5.map"
-stage5_map_end:
-stage5_pal: .incbin "../gen/stage5.pal"
-stage5_pal_end:
+.segment "DATA36"
 stage6_tiles: .incbin "../gen/stage6.bin"
 stage6_tiles_end:
-stage6_map: .incbin "../gen/stage6.map"
-stage6_map_end:
-stage6_pal: .incbin "../gen/stage6.pal"
-stage6_pal_end:
-logo_tiles: .incbin "../gen/logo.bin"
-logo_tiles_end:
-.segment "DATA36"
-stage7_tiles: .incbin "../gen/stage7.bin"
-stage7_tiles_end:
-stage7_map: .incbin "../gen/stage7.map"
-stage7_map_end:
-stage7_pal: .incbin "../gen/stage7.pal"
-stage7_pal_end:
-.segment "DATA37"
-stage8_tiles: .incbin "../gen/stage8.bin"
-stage8_tiles_end:
-stage8_map: .incbin "../gen/stage8.map"
-stage8_map_end:
-stage8_pal: .incbin "../gen/stage8.pal"
-stage8_pal_end:
-.segment "DATA38"
 stage9_tiles: .incbin "../gen/stage9.bin"
 stage9_tiles_end:
-stage9_map: .incbin "../gen/stage9.map"
-stage9_map_end:
-stage9_pal: .incbin "../gen/stage9.pal"
-stage9_pal_end:
+.segment "DATA37"
+stage7_tiles: .incbin "../gen/stage7.bin"
+stage7_tiles_end:
 face1_tiles: .incbin "../gen/face1.bin"
 face1_tiles_end:
+.segment "DATA38"
+stage8_tiles: .incbin "../gen/stage8.bin"
+stage8_tiles_end:
+.segment "DATA39"
 face2_tiles: .incbin "../gen/face2.bin"
 face2_tiles_end:
 face3_tiles: .incbin "../gen/face3.bin"
 face3_tiles_end:
-.segment "DATA39"
 face4_tiles: .incbin "../gen/face4.bin"
 face4_tiles_end:
 face5_tiles: .incbin "../gen/face5.bin"
@@ -100,6 +100,8 @@ face8_tiles_end:
 .segment "DATA40"
 fx_tiles: .incbin "../gen/fx.bin"
 fx_tiles_end:
+crib_tiles: .incbin "../gen/crib.bin"
+crib_tiles_end:
 .segment "RODATA"
 ; STAGE_TAB: 8 bytes per stage 1..9 (entry 0 dummy): tiles addr, tiles bytes, map addr, pal addr; banks: STAGE_TBANK (tiles), STAGE_MBANK (map + palettes)
 STAGE_TAB:
@@ -158,7 +160,7 @@ SKYRG_TAB:
 SKYB_TAB:
   .word 0, .loword(SKYB_1), .loword(SKYB_2), .loword(SKYB_3), .loword(SKYB_4), .loword(SKYB_5), .loword(SKYB_6), .loword(SKYB_7), .loword(SKYB_8), .loword(SKYB_9)
 AMB_1:
-  .byte 1, 2, 88, 17, 0, 6, 2, 2, 120, 40, 0, 6, 12, 4, 57, 2, 208, 94, 18, 103, 51, 107, 84, 111, 117, 115, 84, 111, 51, 107, 18, 103, 208, 94, 142, 86, 109, 82, 76, 78, 76, 78, 76, 78, 109, 82, 142, 86, 0, 0, 0, 0, 0, 0, 2, 44, 0, 94, 196, 0, 94
+  .byte 1, 2, 88, 17, 0, 6, 2, 2, 120, 40, 0, 6, 12, 4, 60, 2, 20, 107, 86, 115, 119, 119, 152, 123, 185, 127, 152, 123, 119, 119, 86, 115, 20, 107, 210, 98, 177, 94, 144, 90, 144, 90, 144, 90, 177, 94, 210, 98, 0, 0, 0, 0, 0, 0, 2, 44, 0, 94, 196, 0, 94
 AMB_2:
   .byte 3, 1, 0, 61, 1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 56, 0, 104, 96, 0, 104, 148, 0, 104, 192, 0, 104, 0
 AMB_3:
@@ -179,12 +181,14 @@ AMB_TAB:
   .word 0, .loword(AMB_1), .loword(AMB_2), .loword(AMB_3), .loword(AMB_4), .loword(AMB_5), .loword(AMB_6), .loword(AMB_7), .loword(AMB_8), .loword(AMB_9)
 LOGO_PAL:
   .word 5187, 9119, 4703, 32767, 12425
+CRIB_PAL:
+  .word 2149, 5391, 7605, 12954, 19262, 29663, 27449, 17903, 17918, 12159, 28299, 3239, 32767, 7775, 11594
 FX_PAL:
   .word 6244, 21008, 12552, 29530, 32767, 24914, 5489, 27263, 32395, 6364, 6751, 9038, 19416, 32726, 9119
-FX_CROWD_A = 0
-FX_CROWD_A2 = 1
-FX_CROWD_B = 2
-FX_CROWD_B2 = 3
+FX_BARREL = 0
+FX_CRATE = 1
+FX_POT = 2
+FX_DEW = 3
 FX_BIRD0 = 4
 FX_BIRD1 = 5
 FX_BFLY0 = 6
@@ -223,15 +227,15 @@ ICON_TAB:
 ICON_BANK:
   .byte ^icon1_tiles, ^icon2_tiles, ^icon3_tiles, ^icon4_tiles, ^icon5_tiles, ^icon6_tiles, ^icon7_tiles, ^icon8_tiles
 SEL_LOC_COL:
-  .byte 1, 7, 11, 13, 17, 20, 24, 27
+  .byte 1, 20, 24, 13, 15, 17, 21, 22
 SEL_LOC_ROW:
-  .byte 10, 7, 3, 9, 6, 11, 5, 10
+  .byte 9, 3, 2, 7, 2, 8, 10, 12
 STAGE_NAME:
-  .byte 2, 1, 25, 15, 21, 0, 0, 0
-  .byte 25, 1, 18, 4, 0, 0, 0, 0
-  .byte 18, 15, 15, 6, 0, 0, 0, 0
-  .byte 6, 1, 18, 13, 0, 0, 0, 0
-  .byte 16, 15, 14, 4, 0, 0, 0, 0
-  .byte 3, 1, 22, 5, 0, 0, 0, 0
-  .byte 7, 1, 18, 4, 5, 14, 0, 0
-  .byte 12, 5, 1, 6, 0, 0, 0, 0
+  .byte 12, 1, 0, 0, 0, 0, 0, 0
+  .byte 15, 8, 9, 15, 0, 0, 0, 0
+  .byte 14, 25, 3, 0, 0, 0, 0, 0
+  .byte 9, 15, 23, 1, 0, 0, 0, 0
+  .byte 13, 9, 14, 14, 0, 0, 0, 0
+  .byte 11, 5, 14, 20, 21, 3, 11, 25
+  .byte 7, 5, 15, 18, 7, 9, 1, 0
+  .byte 6, 12, 15, 18, 9, 4, 1, 0
