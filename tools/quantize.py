@@ -40,7 +40,8 @@ def tile_error(tile, alpha, pal):
     d = ((pix[:, None, :] - pal[None, :, :]) ** 2).sum(2).min(1)
     return d.sum()
 
-def run(n, src, outdir, sky, slots=None, floor_rule=True, label="painted stage"):
+def run(n, src, outdir, sky, slots=None, floor_rule=True, label="painted stage", merge_th=0.0):
+    """merge_th > 0: tiles whose mean squared colour distance (0..31 units) to an existing tile is below it reuse that tile"""
     slots = list(slots or PAL_SLOTS)
     K = len(slots)
     im = Image.open(src).convert("RGBA")
@@ -86,6 +87,7 @@ def run(n, src, outdir, sky, slots=None, floor_rule=True, label="painted stage")
     blank = bytes(32)
     tile_bytes[blank] = 0; order.append(blank)
     total_err = 0
+    uniq_rgb = []; uniq_k = []          # per unique tile: 8x8x3 colours (transparent = -40) and its palette group
     for i, (t, a_) in enumerate(tiles):
         k = assign[i]; pal = pals[k]
         idx = np.zeros((8, 8), np.int32)
@@ -103,9 +105,27 @@ def run(n, src, outdir, sky, slots=None, floor_rule=True, label="painted stage")
                 if b in tile_bytes:
                     best = (tile_bytes[b], fx, fy); break
             if best: break
+        if best is None and merge_th > 0 and uniq_rgb:
+            rgb = np.full((8, 8, 3), -40.0, np.float32)
+            rgb[a_] = pal[idx[a_] - 1]
+            U = np.stack(uniq_rgb); K = np.array(uniq_k)
+            cand = np.nonzero(K == k)[0]
+            if len(cand):
+                found = None
+                for fx in (0, 1):
+                    for fy in (0, 1):
+                        v = rgb[::-1] if fy else rgb
+                        v = v[:, ::-1] if fx else v
+                        dist = ((U[cand] - v[None]) ** 2).sum(3).mean((1, 2))
+                        j = int(dist.argmin())
+                        if dist[j] < merge_th and (found is None or dist[j] < found[0]): found = (dist[j], cand[j], fx, fy)
+                if found is not None:
+                    best = (int(found[1]) + 1, found[2], found[3])      # +1: order[0] is the blank tile
         if best is None:
             b = encode_tile(idx)
             tile_bytes[b] = len(order); order.append(b)
+            rgb = np.full((8, 8, 3), -40.0, np.float32); rgb[a_] = pal[idx[a_] - 1]
+            uniq_rgb.append(rgb); uniq_k.append(k)
             best = (tile_bytes[b], 0, 0)
         ti, fx, fy = best
         mapw.append(ti | (slots[k] << 10) | (fx << 14) | (fy << 15))

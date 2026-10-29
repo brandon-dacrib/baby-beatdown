@@ -57,12 +57,15 @@ def blob(label, fname, data, group=None):
 WORLD_W, EXT = 384, 64
 def extend_painting(src, dst):
     im = Image.open(src).convert("RGBA")
+    if im.size[0] == WORLD_W:
+        im.save(dst); return 0
     out = Image.new("RGBA", (WORLD_W, 224))
     out.paste(im.crop((0, 0, EXT, 224)).transpose(Image.FLIP_LEFT_RIGHT), (0, 0))
     out.paste(im, (EXT, 0))
     out.paste(im.crop((256 - EXT, 0, 256, 224)).transpose(Image.FLIP_LEFT_RIGHT), (256 + EXT, 0))
     out.save(dst)
-stage_info = {}
+    return EXT
+stage_info = {}; stage_ox = {}
 for n in range(1, 10):
     src = os.path.join(root, "render", f"stage{n}.png")
     with tempfile.TemporaryDirectory() as tmp:
@@ -70,8 +73,10 @@ for n in range(1, 10):
             order, mapw, pals, slots = quantize.run(n, src, tmp, SKY[n], slots=[3, 4, 5, 6, 7], floor_rule=False, label="select map")
             tw = 32
         else:
-            wide = os.path.join(tmp, f"wide{n}.png"); extend_painting(src, wide)
-            order, mapw, pals, slots = quantize.run(n, wide, tmp, SKY[n])
+            wide = os.path.join(tmp, f"wide{n}.png"); stage_ox[n] = extend_painting(src, wide)
+            for th in (0.0, 2.0, 4.0, 7.0, 11.0, 16.0, 24.0):       # merge near-identical tiles until the painting fits
+                order, mapw, pals, slots = quantize.run(n, wide, tmp, SKY[n], merge_th=th)
+                if len(order) <= 1000: break
             tw = WORLD_W // 8
     tiles = b"".join(order)
     palette = b"".join(struct.pack("<H", x) for p in pals for x in p)
@@ -153,7 +158,8 @@ def paint(*layers):
     idx = np.zeros((32, 32), np.int32)
     for m, c in layers: idx[m] = c
     return idx
-def crowd_baby(bob, skin, shirt, hair, cheer):
+def crowd_baby(bob, skin, shirt, hair, cheer, mouth):
+    """a spectator baby: the mouth colour is given per skin tone (never one pink for everyone)"""
     hy = 10 - bob
     head = ell(16, hy, 6.5, 6)
     hairm = ell(16, hy - 3, 6.2, 3.5) & (yy < hy - 1)
@@ -165,8 +171,9 @@ def crowd_baby(bob, skin, shirt, hair, cheer):
         arms = box(7, hy + 6, 9, hy + 13) | box(22, hy + 6, 24, hy + 13)
     idx = paint((legs, DGREY), (arms, skin), (body, shirt), (head, skin), (hairm, hair))
     idx = outline(idx)
-    idx[hy, 14] = DARK; idx[hy, 18] = DARK            # eyes
-    idx[hy + 3, 15:18] = PINK                           # mouth
+    idx[hy - 1:hy + 1, 13:15] = WHITE; idx[hy - 1:hy + 1, 18:20] = WHITE     # eye whites
+    idx[hy, 14] = DARK; idx[hy, 18] = DARK                                   # pupils
+    idx[hy + 3, 15:18] = mouth                                               # mouth
     return idx
 def bird(up):
     idx = np.zeros((32, 32), np.int32)
@@ -251,8 +258,8 @@ def bubble(x, y):
 def glob(x, y):
     if ins(x, y, 9, 8, 6, 4) or ins(x, y, 3, 8, 2.5, 2): return LGREEN if y < 7 else GREEN
     return 0
-CELLS = [("CROWD_A", crowd_baby(0, BROWN, RED, DARK, False)), ("CROWD_A2", crowd_baby(1, BROWN, RED, DARK, True)),
-         ("CROWD_B", crowd_baby(0, PINK, GREEN, ORANGE, False)), ("CROWD_B2", crowd_baby(1, PINK, GREEN, ORANGE, True)),
+CELLS = [("CROWD_A", crowd_baby(0, BROWN, RED, DARK, False, DARK)), ("CROWD_A2", crowd_baby(1, BROWN, RED, DARK, True, DARK)),
+         ("CROWD_B", crowd_baby(0, PINK, GREEN, ORANGE, False, RED)), ("CROWD_B2", crowd_baby(1, PINK, GREEN, ORANGE, True, RED)),
          ("BIRD0", bird(True)), ("BIRD1", bird(False)), ("BFLY0", butterfly(True)), ("BFLY1", butterfly(False)),
          ("CANDLE0", candle(0)), ("SHADOW", shadow()), ("SPARK0", spark(0)), ("SPARK1", spark(1))]
 CELLS += [(f"PROJ{i}", toy_cell(i)) for i in range(8)]
@@ -353,7 +360,7 @@ for n in range(1, 10):
         b.append(idx); b += struct.pack("<H", bgr555(base)); b += struct.pack("<H", bgr555([v - 70 for v in base]))
     else:
         b.append(0); b += bytes(4)
-    ox = EXT if n != 9 else 0            # world x of the painting's left edge
+    ox = stage_ox.get(n, 0)              # world x of the painting's left edge (0 for a full-width painting)
     crowd = a.get("crowd", []); b.append(len(crowd))
     for (x, y) in crowd: b += struct.pack("<HB", x + ox, y)
     candles = a.get("candles", []); b.append(len(candles))

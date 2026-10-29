@@ -24,6 +24,7 @@ art and tuning data.
 | `src/spc.s` | SPC700 command server: volume / note on / note off per voice; samples at $0300, ADSR table at $0340 |
 | `src/lorom.cfg` | bank 0 code+data, banks 1..28 sprite data, bank 29 audio + songs, banks 30.. packed stage/screen data |
 | `tools/gen_asm.py` | `gen/data.inc` (moves, boxes, keyframe scripts, per-character tables), `gen/charN.bin` (56 poses x 2 KB), 2bpp HUD font (+ bracket corner glyph 49) |
+| `tools/scenes2.py` | paints the eight 384x224 arenas in the Street Fighter II recipe (sky band, tall middle layer with large spectators whose faces and lip colour follow their skin tone, flanking props, perspective floors); `render/stageN.png` |
 | `tools/gen_screens.py` | the nine paintings (stages 1..8 + the select map) as tiles/maps/palettes, title logo, 96x96 portraits + 32x32 icons, 32x32 effect cells (crowd, birds, butterflies, candles, shadow, sparks), sky gradient HDMA tables, per-stage ambient records, select labels; packs it all into 32 KB banks (`gen/screens.inc`) |
 | `tools/gen_audio.py` | synthesizes the 15 instruments, BRR-encodes them, converts all nine `toy/sources/songs/*.json` to `[delta frames][cmd][p1][p2][p3]` streams (48 ticks per beat) |
 | `tools/emu_test.py` | runs the ROM in Mesen2's test runner with injected pad input; Mesen's own PNG screenshot + zero page + OAM/CGRAM/VRAM/SPC probes come back through the 128 KB save RAM (Mesen's Lua may not write files). `--bg3` / `--oam` print the text layer and sprite table |
@@ -58,10 +59,11 @@ art and tuning data.
   stored as two 32x32 screens), BG2 = logo / portrait (both at tiles 192.., VRAM $4C00, map at $4800, blank
   tile 190), BG3 = text (2bpp font at $5600 = glyphs 704.. under name base $4000, map at $5C00, the whole
   1792-byte shadow is DMA'd every frame; palettes 5 yellow, 6 red, 7 white).
-- **Scrolling arena** (the SF2 feel): each stage is 384 px wide (the 256 px painting with its outer 64 px
-  mirrored on each side), fighters live in world coordinates, the camera follows their midpoint and keeps both
+- **Scrolling arena** (the SF2 feel): each stage is a 384 px painting (`tools/scenes2.py`; a 256 px painting
+  would get its outer 64 px mirrored on each side), fighters live in world coordinates, the camera follows their midpoint and keeps both
   on screen (`update_camera`), every HDMA scroll line carries the camera, cloud bands move at half speed and the
-  floor lines slide faster toward the bottom for perspective.
+  floor lines slide faster toward the bottom for perspective. The quantiser merges near-identical tiles
+  (`merge_th`, raised until a painting fits in 1000 tiles).
 - **Sky gradient**: HDMA channels 1 and 3 write the fixed colour (COLDATA) per 8-line step; colour 0 is black
   and the backdrop takes part in colour math, so the gradient shows wherever the painting is transparent.
   (Writing CGRAM by HDMA corrupts other palette entries in Mesen2, so the palette is never touched mid-frame.)
