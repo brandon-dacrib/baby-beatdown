@@ -3,7 +3,7 @@
 
 Mesen's test runner forbids Lua file I/O, so the script writes each screenshot (Mesen's own PNG) and the
 256-byte zero page etc. into the cartridge's 128 KB save RAM (32 KB per snapshot); Mesen writes that to disk on exit.
-usage: emu_test.py OUTPREFIX FRAME[,FRAME...] [--input FRAME-FRAME:keys ...] [--rom ROM] [--mesen PATH]
+usage: emu_test.py OUTPREFIX FRAME[,FRAME...] [--input FRAME-FRAME:keys ...] [--input2 ... (pad 2)] [--bg3] [--oam]
   keys: letters from a b x y l r s(elect) t(start) u d l(eft)->L  r(ight)->R, e.g. 30-60:R  90-92:y
   writes OUTPREFIX_<frame>.png and prints the fighter state at each snapshot."""
 import os, subprocess, sys, struct
@@ -13,9 +13,10 @@ rom = os.path.join(root, "dist/baby-beatdown.sfc")
 srm = os.path.expanduser("~/Library/Application Support/Mesen2/Saves/baby-beatdown.srm")
 args = [a for a in sys.argv[1:] if a not in ("--bg3", "--oam", "--full")]
 inputs = []
-while "--input" in args:
-    i = args.index("--input"); spec = args[i + 1]; del args[i:i + 2]
-    rng, keys = spec.split(":"); a, b = rng.split("-"); inputs.append((int(a), int(b), keys))
+for flag, port in (("--input", 0), ("--input2", 1)):
+    while flag in args:
+        i = args.index(flag); spec = args[i + 1]; del args[i:i + 2]
+        rng, keys = spec.split(":"); a, b = rng.split("-"); inputs.append((int(a), int(b), keys, port))
 if "--rom" in args:
     i = args.index("--rom"); rom = args[i + 1]; del args[i:i + 2]
 out = args[0]; frames = [int(x) for x in args[1].split(",")][:4]
@@ -23,7 +24,7 @@ KEYMAP = {"a": "a", "b": "b", "x": "x", "y": "y", "l": "l", "r": "r", "s": "sele
           "U": "up", "D": "down", "L": "left", "R": "right"}
 lua = ["local shots = {" + ", ".join(f"[{f}]={k}" for k, f in enumerate(frames)) + "}",
        "local last = " + str(max(frames)),
-       "local inputs = {" + ", ".join("{%d,%d,{%s}}" % (a, b, ", ".join(f"{KEYMAP[c]}=true" for c in keys)) for a, b, keys in inputs) + "}",
+       "local inputs = {" + ", ".join("{%d,%d,{%s},%d}" % (a, b, ", ".join(f"{KEYMAP[c]}=true" for c in keys), port) for a, b, keys, port in inputs) + "}",
        "local f = 0",
        "local function dump(k)",
        "  local base = k * 0x8000",
@@ -43,7 +44,7 @@ lua = ["local shots = {" + ", ".join(f"[{f}]={k}" for k, f in enumerate(frames))
        "end",
        "emu.addEventCallback(function()",
        "  for _, inp in ipairs(inputs) do",
-       "    if f + 1 >= inp[1] and f + 1 <= inp[2] then emu.setInput(inp[3], 0) end",
+       "    if f + 1 >= inp[1] and f + 1 <= inp[2] then emu.setInput(inp[3], 0, inp[4]) end",
        "  end",
        "end, emu.eventType.inputPolled)",
        "emu.addEventCallback(function()",

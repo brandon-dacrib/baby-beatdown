@@ -183,6 +183,34 @@ bf_n:       .res 2
 bf_x:       .res 4
 bf_y:       .res 4
 bf_t:       .res 4
+callout_char: .res 2
+callout_t:  .res 2
+sp_ch:      .res 2
+pj_speed:   .res 2
+pj_dmg:     .res 2
+pj_dy:      .res 2
+pj_wob:     .res 2
+pj_life:    .res 2
+pj_cellv:   .res 2
+pj_xoff:    .res 2
+pj_on:      .res 4      ; projectile slots (index 0/2 = owner)
+pj_t:       .res 4
+pj_x:       .res 4
+pj_y:       .res 4
+pj_vx:      .res 4
+pj_cell:    .res 4
+pj_dmgv:    .res 4
+pj_lifev:   .res 4
+pj_wobv:    .res 4
+two_p:      .res 2      ; 1 = second controller drives P2
+pad2_now:   .res 2
+pad2_prev:  .res 2
+pad2_new:   .res 2
+sel_ok1:    .res 2
+sel_ok2:    .res 2
+cur_tmp:    .res 2
+cur_pad:    .res 2
+p1_done:    .res 2
 
 ; ------------------------------------------------------------------ ROM data
 .segment "RODATA"
@@ -670,51 +698,68 @@ nmi:
 ; ------------------------------------------------------------------ input
 ; P1 pad -> in_* [0]; new presses via pad_prev
 .proc read_pads
-  lda pad_now
-  sta pad_prev
   a8
 : lda HVBJOY
   and #1
   bne :-                    ; auto joypad read in progress
   a16
+  lda pad_now
+  sta pad_prev
   lda JOY1L
   sta pad_now
-  stz in_left
-  stz in_right
-  stz in_up
-  stz in_down
-  stz in_punch
-  stz in_kick
-  stz in_super
+  lda pad_prev
+  eor #$FFFF
+  and pad_now
+  sta pad_new               ; newly pressed
+  lda pad2_now
+  sta pad2_prev
+  lda JOY2L
+  sta pad2_now
+  lda pad2_prev
+  eor #$FFFF
+  and pad2_now
+  sta pad2_new
+  ldx #0
   lda pad_now
+  sta tmp0
+  lda pad_new
+  sta tmp1
+  ; fall through: P1's inputs
+.endproc
+; X = fighter, tmp0 = held buttons, tmp1 = new presses -> in_*,x
+.proc decode_pad
+  stz in_left,x
+  stz in_right,x
+  stz in_up,x
+  stz in_down,x
+  stz in_punch,x
+  stz in_kick,x
+  stz in_super,x
+  lda tmp0
   bit #$0200
   beq :+
-  inc in_left
+  inc in_left,x
 : bit #$0100
   beq :+
-  inc in_right
+  inc in_right,x
 : bit #$0800
   beq :+
-  inc in_up
+  inc in_up,x
 : bit #$0400
   beq :+
-  inc in_down
-: lda pad_prev
-  eor #$FFFF
-  and pad_now               ; newly pressed
-  sta tmp0
-  sta pad_new
+  inc in_down,x
+: lda tmp1
   bit #$4040                ; Y or X
   beq :+
-  inc in_punch
-: lda tmp0
+  inc in_punch,x
+: lda tmp1
   bit #$8000                ; B
   beq :+
-  inc in_kick
-: lda tmp0
+  inc in_kick,x
+: lda tmp1
   bit #$0080                ; A
   beq :+
-  inc in_super
+  inc in_super,x
 : rts
 .endproc
 
@@ -1085,7 +1130,11 @@ nmi:
   ldby M_BOX
   bne :+
   rts
-: sta tmp3                  ; b
+: jmp hit_box
+.endproc
+; A = attack box id, X = attacker: A = hurt slot hit or 0 (bx/by = box centre)
+.proc hit_box
+  sta tmp3                  ; b
   tay
   ldsby ABOX_CX
   ldy fface,x
@@ -1440,7 +1489,7 @@ nmi:
 : sta fmeter,x
   lda #SC_BLOCK
   jsr set_script
-  lda #FX_BSPARK
+  lda #FX_SPARK1
   jsr spawn_spark
   lda #SMP_TOM
   jmp sfx_play
@@ -1610,6 +1659,9 @@ nmi:
   cmp #ST_WIN
   bne :+
   brl @ret
+: cmp #ST_SUPER
+  bne :+
+  jmp super_state
 : cmp #ST_HIT
   beq @stunned
   cmp #ST_BLOCK
@@ -1644,7 +1696,9 @@ nmi:
   bcs :+
   inc a
   sta ftimer,x
-: ldby M_LUNGE
+: jsr shoot_check
+  ldy tmp3
+  ldby M_LUNGE
   beq @nolunge
   sta tmp2
   ldby M_STARTUP
@@ -1809,13 +1863,7 @@ nmi:
   lda fmeter,x
   cmp #METER_MAX
   bcc @n1
-  stz fmeter,x
-  lda #ST_SUPER
-  sta fstate,x
-  stz ftimer,x
-  stz fhitdone,x
-  lda #SC_SUPER
-  jmp set_script
+  jmp start_super
 @n1:
   lda in_kick,x
   beq @n2
@@ -1829,6 +1877,14 @@ nmi:
   beq @n3
   lda in_down,x
   beq @n3
+  ldy tmp1
+  ldby SPC_CELL             ; a baby with a crouch shot fires it (one in flight at a time)
+  beq @lowp
+  lda pj_on,x
+  bne @lowp
+  lda #MV_SHOOT
+  jmp start_move
+@lowp:
   ldy tmp1
   ldby CH_LOWP
   jmp start_move
@@ -2401,6 +2457,7 @@ irq:
   rti
 
 .include "screens.s"
+.include "specials.s"
 
 ; ------------------------------------------------------------------ header + vectors
 .segment "HEADER"

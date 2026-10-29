@@ -375,6 +375,7 @@ GRID_Y = 112
   jsr fade_out
   jsr hide_all
   stz demo
+  stz two_p
   lda #MODE_TITLE
   sta mode
   stz mtimer
@@ -439,7 +440,7 @@ GRID_Y = 112
   bne @row
   jsr clear_bg3
   TEXT s_tagline, 5, 7, PAL7
-  TEXT s_onep, 8, 25, PAL5
+  TEXT s_onep, 2, 25, PAL5
   a8
   lda #$17                  ; BG1 + BG2 + BG3 + OBJ
   sta TM
@@ -488,8 +489,16 @@ GRID_Y = 112
   stz fvx+2
   jsr draw_fighters
   jsr draw_shadows
-  jsr any_button
+  lda pad2_new
+  and #$1000                ; Start on pad 2: two players
   beq :+
+  lda #1
+  sta two_p
+  jsr sfx_select_c
+  jmp go_select
+: jsr any_button
+  beq :+
+  stz two_p
   jsr sfx_select_c
   jmp go_select
 : lda mtimer
@@ -517,7 +526,13 @@ GRID_Y = 112
   lda #1
   sta sel_cur
   stz sel_cpu
-  stz sel_t
+  lda two_p
+  beq :+
+  lda #2
+  sta sel_cpu               ; 2P: the second cursor
+: stz sel_t
+  stz sel_ok1
+  stz sel_ok2
   lda #9
   jsr load_stage
   lda #8
@@ -792,34 +807,12 @@ GRID_Y = 112
   lda mtimer
   cmp #12
   bcc @draw                 ; input lockout: the press that opened this screen must not pick
+  lda two_p
+  bne @two
   lda sel_cpu
   bne @waiting
-  lda pad_new
-  bit #$0200                ; left
-  beq :+
-  lda #$FFFF
-  jsr move_cursor_x
-: lda pad_new
-  bit #$0100                ; right
-  beq :+
-  lda #1
-  jsr move_cursor_x
-: lda pad_new
-  bit #$0C00                ; up / down
-  beq :+
-  lda sel_cur
-  cmp #5
-  bcs @up
-  clc
-  adc #4
-  bra @set
-@up:
-  sec
-  sbc #4
-@set:
-  sta sel_cur
-  jsr sfx_select_e
-: jsr any_button
+  jsr p1_moves
+  jsr any_button
   beq @draw
   jsr rnd8
   and #7
@@ -834,7 +827,37 @@ GRID_Y = 112
   cmp #110
   bcc @draw
   jmp start_match
+@two:
+  lda sel_ok1
+  bne :+
+  jsr p1_moves
+  jsr any_button
+  beq :+
+  inc sel_ok1
+  jsr sfx_select_g
+: lda sel_ok2
+  bne :+
+  jsr p2_moves
+  lda pad2_new
+  and #BTN_ANY
+  beq :+
+  inc sel_ok2
+  jsr sfx_select_g
+: lda sel_ok1
+  beq @draw
+  lda sel_ok2
+  beq @draw
+  inc sel_t
+  lda sel_t
+  cmp #60
+  bcc @draw
+  jmp start_match
 @draw:
+  lda sel_cpu
+  ldy two_p
+  beq :+
+  lda sel_ok1
+: sta p1_done
   jsr show_face
   jsr clear_bg3
   TEXT s_pselect, 9, 1, PAL7
@@ -847,7 +870,7 @@ GRID_Y = 112
   lda mtimer
   and #16
   beq @one_p
-  lda sel_cpu
+  lda p1_done
   beq @no_1p
 @one_p:
   lda tmp1
@@ -882,8 +905,9 @@ GRID_Y = 112
   lda sel_cur
   jsr loc_label
   lda sel_cpu
-  beq @icons
-  ; CPU pick in red
+  bne :+
+  jmp @icons
+: ; CPU / 2P pick in red
   lda #PAL6
   sta tmp4
   lda sel_cpu
@@ -904,11 +928,19 @@ GRID_Y = 112
   adc tmp2
   tax
   lda #.loword(s_cpu)
-  sta ptr0
+  ldy two_p
+  beq :+
+  lda #.loword(s_2p)
+: sta ptr0
   jsr text_at
   lda sel_cpu
   jsr loc_label
+  lda two_p
+  bne :+
   TEXT s_vscpu, 12, 23, PAL6
+  bra @vs_done
+: TEXT s_vs2p, 12, 23, PAL6
+@vs_done:
   lda sel_cpu
   jsr name_ptr
   ldx #23 * 64 + 19 * 2
@@ -953,7 +985,7 @@ GRID_Y = 112
   inc a
   cmp sel_cur
   bne :+
-  lda sel_cpu
+  lda p1_done
   bne :+
   lda mtimer
   and #8
@@ -990,14 +1022,63 @@ GRID_Y = 112
   rts
 .endproc
 
-; A = +1 / -1: move the cursor within its row of four
+.proc p1_moves
+  lda sel_cur
+  sta cur_tmp
+  lda pad_new
+  sta cur_pad
+  jsr cursor_moves
+  lda cur_tmp
+  sta sel_cur
+  rts
+.endproc
+.proc p2_moves
+  lda sel_cpu
+  sta cur_tmp
+  lda pad2_new
+  sta cur_pad
+  jsr cursor_moves
+  lda cur_tmp
+  sta sel_cpu
+  rts
+.endproc
+; cur_tmp moved by the new presses in cur_pad
+.proc cursor_moves
+  lda cur_pad
+  bit #$0200                ; left
+  beq :+
+  lda #$FFFF
+  jsr move_cursor_x
+: lda cur_pad
+  bit #$0100                ; right
+  beq :+
+  lda #1
+  jsr move_cursor_x
+: lda cur_pad
+  bit #$0C00                ; up / down
+  beq :+
+  lda cur_tmp
+  cmp #5
+  bcs @up
+  clc
+  adc #4
+  bra @set
+@up:
+  sec
+  sbc #4
+@set:
+  sta cur_tmp
+  jsr sfx_select_e
+: rts
+.endproc
+; A = +1 / -1: move cur_tmp within its row of four
 .proc move_cursor_x
   sta tmp2
-  lda sel_cur
+  lda cur_tmp
   dec a
   and #4
   sta tmp3                  ; row base
-  lda sel_cur
+  lda cur_tmp
   dec a
   and #3
   clc
@@ -1006,7 +1087,7 @@ GRID_Y = 112
   clc
   adc tmp3
   inc a
-  sta sel_cur
+  sta cur_tmp
   jmp sfx_select_e
 .endproc
 
@@ -1092,6 +1173,9 @@ GRID_Y = 112
   stz ai_plan
   stz spk_t
   stz spk_t+2
+  stz pj_on
+  stz pj_on+2
+  stz callout_t
   rts
 @one:
   lda #HP_MAX
@@ -1223,7 +1307,9 @@ GRID_Y = 112
   TEXT s_fight, 13, 10, PAL6
 : lda round_t
   cmp #110
-  bne @update
+  beq :+
+  brl @update
+:
   CLEAR_ROW 10
   lda #RS_FIGHT
   sta round_st
@@ -1234,8 +1320,22 @@ GRID_Y = 112
   beq :+
   ldx #0
   jsr cpu_input
-: ldx #2
+  jsr cpu_special
+: lda two_p
+  beq @cpu2
+  ldx #2
+  lda pad2_now
+  sta tmp0
+  lda pad2_new
+  sta tmp1
+  jsr decode_pad
+  bra @in_done
+@cpu2:
+  ldx #2
   jsr cpu_input
+  ldx #2
+  jsr cpu_special
+@in_done:
   jsr tick_clock
   jsr @update
   ; outcome
@@ -1277,10 +1377,17 @@ GRID_Y = 112
   ldx #2
   jsr update_fighter
   jsr separate
+  jsr update_projectiles
   jsr draw_fighters
   jsr draw_shadows
   jsr draw_sparks
-  jmp draw_hud
+  jsr draw_projectiles
+  lda callout_t
+  beq :+
+  dec callout_t
+  bne :+
+  CLEAR_ROW 8
+: jmp draw_hud
 @end:
   jsr clear_inputs
   lda round_t
@@ -1341,7 +1448,10 @@ GRID_Y = 112
   ldx #10 * 64 + 4 * 2
   jsr text_name
   TEXT s_winsmatch, 12, 10, PAL5
-  lda winner
+  lda two_p
+  beq :+
+  brl @update
+: lda winner
   bne :+
   TEXT s_naptime, 5, 12, PAL7
   brl @update
@@ -1473,11 +1583,12 @@ GRID_Y = 112
   dec a
   sta spk_t,x
   lda spk_cell,x
-  cmp #FX_BSPARK
-  beq @cell
+  cmp #FX_SPARK0
+  bne @cell                 ; the block flash (SPARK1) stays put
   lda #12
   sec
   sbc spk_t,x
+  lsr a
   lsr a
   lsr a
   clc
@@ -1907,13 +2018,12 @@ GRID_Y = 112
   adc tmp0
   and #3
   bne :+
-  lda #1
-: clc
-  adc #FX_CANDLE0
+  lda #$40                  ; the flame flickers by mirroring
+: ora #$24
+  sta oa_attr
+  lda #FX_CANDLE0
   jsr fx_tile
   sta oa_tile
-  lda #$24
-  sta oa_attr
   stz oa_large
   ldy amb_oam
   inc amb_oam
@@ -2160,12 +2270,14 @@ GRID_Y = 112
   rts
 .endproc
 
-CROWD_TYPE: .byte 0, 2, 4, 0, 2, 4, 0, 2
+CROWD_TYPE: .byte 0, 2, 0, 2, 0, 2, 0, 2
 SINE64:
   .byte 0, 12, 25, 37, 49, 60, 71, 81, 90, 98, 106, 112, 117, 122, 125, 126, 127, 126, 125, 122, 117, 112, 106, 98, 90, 81, 71, 60, 49, 37, 25, 12, 0, 244, 231, 219, 207, 196, 185, 175, 166, 158, 150, 144, 139, 134, 131, 130, 129, 130, 131, 134, 139, 144, 150, 158, 166, 175, 185, 196, 207, 219, 231, 244
 s_tagline:  .byte "8 BABIES. 1 NAP TIME.", $FF
 s_push:     .byte "PUSH START", $FF
-s_onep:     .byte "1 PLAYER VS CPU", $FF
+s_onep:     .byte "PAD 1 VS CPU   PAD 2 FOR 2P", $FF
+s_2p:       .byte "2P", $FF
+s_vs2p:     .byte "VS 2P  ", $FF
 s_pselect:  .byte "PLAYER SELECT", $FF
 s_1p:       .byte "1P", $FF
 s_cpu:      .byte "CPU", $FF

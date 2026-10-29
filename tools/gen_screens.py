@@ -162,12 +162,15 @@ def bird(up):
     idx[16:18, 15:17] = DARK
     return idx
 def butterfly(open_):
-    w = 7 if open_ else 3.5
-    lw = ell(15 - w, 13, w, 5) | ell(15 - w * 0.8, 20, w * 0.8, 3.8)
-    rw = ell(17 + w, 13, w, 5) | ell(17 + w * 0.8, 20, w * 0.8, 3.8)
-    idx = paint((lw | rw, ORANGE), ((lw | rw) & (yy < 15), YELLOW), (box(15, 9, 16, 24), DARK))
-    spots = (lw | rw) & ((xx % 5 == 2) & (yy % 4 == 1))
-    idx[spots] = DARK
+    """a clearly-a-butterfly butterfly: big pink/purple wings with pale spots, dark body and antennae"""
+    w = 9 if open_ else 5
+    lw = ell(14 - w * 0.9, 12, w, 7) | ell(14 - w * 0.7, 21, w * 0.75, 5)
+    rw = ell(18 + w * 0.9, 12, w, 7) | ell(18 + w * 0.7, 21, w * 0.75, 5)
+    wings = lw | rw
+    idx = paint((wings, PINK), (wings & (yy < 16), PURPLE), (box(15, 7, 16, 25), DARK))
+    idx[wings & ((xx * 3 + yy * 5) % 11 == 0)] = LBLUE
+    idx[wings & (((xx + 2) * 5 + yy * 3) % 13 == 0)] = WHITE
+    idx[5, 13] = DARK; idx[4, 12] = DARK; idx[5, 18] = DARK; idx[4, 19] = DARK; idx[6, 14] = DARK; idx[6, 17] = DARK
     return outline(idx)
 def candle(frame):
     stick = box(13, 16, 18, 31)
@@ -196,12 +199,50 @@ def spark(frame):
 def block_spark():
     idx = paint((ell(16, 16, 8, 8), LBLUE), (ell(16, 16, 5, 5), WHITE), (box(15, 4, 16, 27), BLUE), (box(4, 15, 27, 16), BLUE))
     return outline(idx)
+# the toy's 16x16 projectile art (toy/fx.lua cells 0..7: one per character), centred in 32x32 cells
+import re
+FXT = {int(m.group(1)): m.group(2) for m in re.finditer(r'\[(\d+)\] = "([0-9a-f]+)"', open(os.path.join(root, "toy", "fx.lua")).read())}
+def decode_tile(hx):
+    b = bytes.fromhex(hx); idx = np.zeros((8, 8), np.int32)
+    for row in range(8):
+        p0, p1, p2, p3 = b[row * 2], b[row * 2 + 1], b[16 + row * 2], b[16 + row * 2 + 1]
+        for col in range(8):
+            bit = 7 - col
+            idx[row, col] = ((p0 >> bit) & 1) | (((p1 >> bit) & 1) << 1) | (((p2 >> bit) & 1) << 2) | (((p3 >> bit) & 1) << 3)
+    return idx
+def toy_cell(cell):
+    base = 384 + (cell % 8) * 2 + (cell // 8) * 32
+    idx = np.zeros((32, 32), np.int32)
+    for ty in range(2):
+        for tx in range(2):
+            idx[8 + ty * 8: 16 + ty * 8, 8 + tx * 8: 16 + tx * 8] = decode_tile(FXT[base + ty * 16 + tx])
+    return idx
+def ins(x, y, cx, cy, rx, ry): return ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 <= 1
+def special_cell(fn):
+    idx = np.zeros((32, 32), np.int32)
+    for y in range(16):
+        for x in range(16): idx[8 + y, 8 + x] = fn(x, y)
+    return outline(idx)
+def binky(x, y):
+    if ins(x, y, 8, 9, 5.5, 3.5): return BLUE
+    if ins(x, y, 8, 4, 3, 3) and not ins(x, y, 8, 4, 1.4, 1.4): return PINK
+    return 0
+def yarn(x, y):
+    if not ins(x, y, 8, 8, 6, 6): return 0
+    return PURPLE if ((x + y) % 5 == 0 or (x - y) % 7 == 0) else PINK
+def bubble(x, y):
+    if ins(x, y, 8, 8, 5.5, 5.5): return WHITE if ins(x, y, 6, 6, 1.5, 1.5) else LBLUE
+    return 0
+def glob(x, y):
+    if ins(x, y, 9, 8, 6, 4) or ins(x, y, 3, 8, 2.5, 2): return LGREEN if y < 7 else GREEN
+    return 0
 CELLS = [("CROWD_A", crowd_baby(0, BROWN, RED, DARK, False)), ("CROWD_A2", crowd_baby(1, BROWN, RED, DARK, True)),
          ("CROWD_B", crowd_baby(0, PINK, GREEN, ORANGE, False)), ("CROWD_B2", crowd_baby(1, PINK, GREEN, ORANGE, True)),
-         ("CROWD_C", crowd_baby(0, YELLOW, BLUE, BROWN, False)), ("CROWD_C2", crowd_baby(1, YELLOW, BLUE, BROWN, True)),
          ("BIRD0", bird(True)), ("BIRD1", bird(False)), ("BFLY0", butterfly(True)), ("BFLY1", butterfly(False)),
-         ("CANDLE0", candle(0)), ("CANDLE1", candle(1)), ("SHADOW", shadow()),
-         ("SPARK0", spark(0)), ("SPARK1", spark(1)), ("SPARK2", spark(2)), ("BSPARK", block_spark())]
+         ("CANDLE0", candle(0)), ("SHADOW", shadow()), ("SPARK0", spark(0)), ("SPARK1", spark(1))]
+CELLS += [(f"PROJ{i}", toy_cell(i)) for i in range(8)]
+CELLS += [("SPC0", special_cell(binky)), ("SPC1", special_cell(yarn)), ("SPC2", special_cell(bubble)), ("SPC3", special_cell(glob))]
+assert len(CELLS) == 24, "OBJ rows 8..31 hold 24 cells"
 fx = b"".join(encode_tile(idx[ty * 8:ty * 8 + 8, tx * 8:tx * 8 + 8]) for _, idx in CELLS for ty in range(4) for tx in range(4))
 blob("fx_tiles", "fx.bin", fx)
 # preview sheet

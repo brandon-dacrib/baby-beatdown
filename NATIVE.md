@@ -18,7 +18,8 @@ art and tuning data.
 | path | what |
 |---|---|
 | `src/main.s` | boot, video init, NMI (OAM, whole BG3 map, one 2 KB upload per frame, palette requests), engine (port of `cart/main.lua`), HUD, audio (IPL upload, command send, 60 Hz sequencer, sfx) |
-| `src/screens.s` | title, player select, fight flow (rounds, callouts, match end, attract demo), stage loader, fades, HDMA sky + scroll bands, ambient sprites, palette cycle/flicker, shadows, hit sparks, text |
+| `src/screens.s` | title, player select (1P or 2P), fight flow (rounds, callouts, match end, attract demo), stage loader, fades, HDMA sky + scroll bands, ambient sprites, palette cycle/flicker, shadows, hit sparks, text |
+| `src/specials.s` | meter supers (projectile or rush per baby, with the name callout), crouch-punch shots for four babies, the two projectile slots |
 | `src/snes.inc` | register names, width macros, byte-table load macros |
 | `src/spc.s` | SPC700 command server: volume / note on / note off per voice; samples at $0300, ADSR table at $0340 |
 | `src/lorom.cfg` | bank 0 code+data, banks 1..28 sprite data, bank 29 audio + songs, banks 30.. packed stage/screen data |
@@ -39,6 +40,13 @@ art and tuning data.
   baby's stage with its song.
 - **Fight**: "ROUND n" / "FIGHT!" intro (inputs locked, clock stopped), K.O. / TIME UP / DRAW, "NAME WINS" with
   the winner's flex/pump pose, best of three, "WINS THE MATCH" screen back to the title.
+- **Two players**: Start on pad 2 at the title joins; on the select screen pad 1 moves the yellow cursor, pad 2
+  the red one, any button confirms each; the fight reads pad 2 for P2 instead of the CPU brain.
+- **Supers** (A with a full meter): DIAPER DUMP, BINKY BLAST, BUBBLE BURP, TANTRUM TOSS and SPIT-UP SPRAY are
+  projectiles (fired at frame 18 of the pose); BOTTLE BASH, RATTLE RAMPAGE (3 hits) and TEETHING CHOMP (hop)
+  are rushes that test the rush box every 8 frames. **Crouch shots** (down + punch) for Brandon, Dawn, Isaac
+  and Blue (one in flight at a time); the CPU throws them from range. Projectiles hit the body box, are
+  blockable, and use the toy's 16x16 art centred in 32x32 cells.
 
 ## Design (what differs from the Studio cart)
 
@@ -77,5 +85,5 @@ file lands in `~/Library/Application Support/Mesen2/Saves/`.
 
 ## Not done yet
 
-- 2-player input, projectiles / supers (the super input only plays a pose), floor darkening toward the camera
+- floor darkening toward the camera, breakable stage objects, voice samples
 - audio only verified structurally (driver and samples land in SPC RAM, commands are acknowledged); nobody has listened yet

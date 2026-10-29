@@ -56,6 +56,9 @@ S("stagger",[(1,0x81,c(69),BS_HIT)])
 S("ko",     [(10,0,c(7),BS_KO),(1,0x81,c(9),BS_KO)])
 S("super",  [(1,0x81,c(10),BS_STAND)])
 S("win",    [(14,0,c(70),BS_STAND),(14,0x81,c(75),BS_STAND)])
+S("super_proj", [(18,0,c(10),BS_STAND),(18,0x80,c(3),BS_STAND)])
+S("rush_p", [(12,0,c(10),BS_STAND),(24,0x80,c(3),BS_STAND)])
+S("rush_k", [(12,0,c(10),BS_STAND),(24,0x80,c(4),BS_STAND)])
 for n in names:
     a = A[n]; low = a.get("low", False)
     base = BS_CROUCH if low else (BS_AIR if a.get("air") or a.get("hop") else BS_STAND)
@@ -95,8 +98,10 @@ tb("M_STUN", pad([A[n]["stun"] for n in names])); tb("M_BOX", pad([abox(A[n]) fo
 tb("M_FLAGS", pad([flags(A[n]) for n in names]))
 tb("M_LUNGE", pad([int(round(A[n].get("lunge", 0) * 16)) for n in names]))
 tb("M_HOP", pad([int(round(A[n].get("hop", 0) * 16)) for n in names]))
-tb("M_HITS", pad([A[n].get("hits", 1) for n in names]))
+tb("M_HITS", pad([0 if n == "shoot" else A[n].get("hits", 1) for n in names]))   # shoot: no hit check, it fires a projectile
 tb("M_SCRIPT", pad([sid["atk_" + n] for n in names]))
+RB = g["RUSH_BOX"]; rush_id = abox(RB)
+w(f"ABOX_RUSH = {rush_id}")
 for i, k in enumerate(("CX", "CY", "HW", "HH")):
     tb(f"ABOX_{k}", [0] + [b[i] for b in aboxes]); tb(f"HBOX_{k}", [b[i] for b in hurt]); tb(f"PBOX_{k}", [b[i] for b in push])
 for i, k in enumerate(("HEAD", "BODY", "LEGS", "PUSH")): tb(f"BS_{k}", [b[i] for b in boxsets])
@@ -119,9 +124,28 @@ tb("CH_GRAV", [int(round(16 * s["grav"])) for s in STYLE])
 tb("CH_PMUL", [int(round(16 * s["pmul"])) for s in STYLE])
 tb("CH_KMUL", [int(round(16 * s["kmul"])) for s in STYLE])
 tb("CH_IDLE2", [c(80 + i) for i in range(1, 9)])
+# supers (A with a full meter): kind 0 = projectile (fires at frame 18), 1 = rush (runs from frame 12, hits every 6 frames)
+SUP = g["SUPER"]
+tb("SUP_KIND", [1 if sp["kind"] == "rush" else 0 for sp in SUP])
+tb("SUP_SPEED", [int(round(sp["speed"] * 16)) for sp in SUP])
+tb("SUP_DMG", [sp["dmg"] for sp in SUP])
+tb("SUP_HITS", [sp.get("hits", 1) for sp in SUP])
+tb("SUP_DY", [sp.get("dy", 16) + 8 for sp in SUP])            # projectile centre below the sprite top
+tw("SUP_LIFE", [sp.get("short", 400) for sp in SUP])
+tb("SUP_FLAGS", [(1 if sp.get("wobble") else 0) | (2 if sp.get("hop") else 0) | (4 if sp.get("ground") else 0) for sp in SUP])
+tb("SUP_SCRIPT", [sid["super_proj"] if sp["kind"] == "proj" else (sid["rush_k"] if sp.get("pose") == 4 else sid["rush_p"]) for sp in SUP])
+# crouch-punch specials for four characters (toy/specials.lua): cell 1..4 (0 = none)
+SPC = {1: (1, 3.2, 6, 0), 3: (2, 2.8, 6, 0), 5: (3, 2.0, 5, 1), 8: (4, 3.6, 6, 0)}
+tb("SPC_CELL", [SPC.get(i, (0, 0, 0, 0))[0] for i in range(1, 9)])
+tb("SPC_SPEED", [int(round(SPC.get(i, (0, 0, 0, 0))[1] * 16)) for i in range(1, 9)])
+tb("SPC_DMG", [SPC.get(i, (0, 0, 0, 0))[2] for i in range(1, 9)])
+tb("SPC_WOBBLE", [SPC.get(i, (0, 0, 0, 0))[3] for i in range(1, 9)])
 # names: 8 glyphs per character, A=1..Z=26, 0 = blank
 GL = {chr(65 + i): i + 1 for i in range(26)}
-GL.update({str(d): 27 + d for d in range(10)}); GL[" "] = 0
+GL.update({str(d): 27 + d for d in range(10)}); GL[" "] = 0; GL["!"] = 37; GL["."] = 38; GL["-"] = 39
+w("SUP_NAME:")
+for sp in SUP: w("  .byte " + ", ".join(str(GL.get(ch, 0)) for ch in (sp["name"] + " " * 16)[:16]))
+tb("SUP_NAMECOL", [(32 - len(sp["name"])) // 2 for sp in SUP])
 chars = []
 for ci in range(1, 9):
     j = json.load(open(os.path.join(root, f"render/poses/char{ci}.json"))); chars.append(j)
