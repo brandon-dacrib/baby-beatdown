@@ -217,7 +217,7 @@ inc.append("  .word " + ", ".join(str(pitch_for(m)) for m in range(24, 108)))
 songs = sys.argv[1:] or ["bayou", "backyard", "rooftop", "farm", "pond", "cave", "garden", "leaf", "nursery"]
 inc.append('.segment "SONGS"')
 for name in songs:
-    j = json.load(open(os.path.join(root, f"toy/sources/songs/{name}.json")))
+    j = json.load(open(os.path.join(root, f"data/songs/{name}.json")))
     stream, total = convert_song(j)
     inc.append(f"SONG_{name.upper()}:")
     for i in range(0, len(stream), 40):

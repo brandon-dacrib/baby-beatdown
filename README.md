@@ -1,74 +1,54 @@
 # Baby Beatdown
 
-A Street Fighter II-style SNES fighting game for the [ppu.toys](https://ppu.toys) Studio (emulated SNES PPU +
-S-DSP, written in Lua). Eight baby fighters, each an animal (plus one human and one insect) with its own body,
-martial art, stage, song, voice, ending and select-screen portrait.
+![Baby Beatdown box art](art/boxart.png)
 
-Public repo: https://github.com/brandon-dacrib/baby-beatdown
+A Street Fighter II style fighting game for the Super Nintendo, written from scratch in 65816 assembly with
+its own SPC700 sound driver. Eight babies, each an animal (plus one human and one bug) with its own martial
+art, home stage somewhere in America, song, projectile, super, catchphrases and a grudge.
 
-## Where things are
+**Play it**: `dist/baby-beatdown.sfc` (2 MB LoROM) in any accurate SNES emulator or on a flash cart.
 
-| path | purpose |
-|------|---------|
-| `toy/` | the 83 Lua files that ARE the game, plus `sources/` (font and stage sheets, 9 songs). Authoritative copy of the Studio toy. |
-| `00_LOAD_ORDER.md` | how to restore the toy into a fresh Studio tab (34 numbered steps) and the Studio quirks learned the hard way. |
-| `STYLES.md` | who fights how: styles, move lists, supers, projectiles, reactions, celebrations, arcade ladder, hands. |
-| `tools/` | Python painters: `scenes.py` + `quantize.py` (stage backgrounds), `select_bg.py`, `faces.py` (portraits), `paintlib.py`. |
-| `legacy/` | first-generation sprite generators; unused. |
-| `render/` | PNG renders of the painted stages (ignored by git; regenerate with the tools). |
+| | |
+|---|---|
+| ![title](art/screenshots/title.png) | ![select](art/screenshots/select.png) |
+| ![fight](art/screenshots/fight.png) | ![bonus](art/screenshots/bonus.png) |
+
+## What is in it
+
+- title screen with an attract mode that plays through the select screen and a CPU match
+- player select on a map of the United States, one or two players
+- eight scrolling 384-pixel stages painted in the SF2 recipe (sky, structures, big spectators, perspective
+  floors) with parallax, water shimmer, birds, butterflies, candles, breathing palettes
+- best-of-three rounds with ROUND / FIGHT / K.O. callouts, hit sparks, translucent shadows, combo counter
+- chain combos, sweeps that knock down, breakable props, crouch shots, meter supers (projectiles and rushes)
+  with their names called out, a break-the-crib bonus stage
+- character bios: style, motivation on the select screen, win and lose lines at the match end
+- nine songs and sixteen sound effects through a command-driven SPC700 driver
 
 ## The roster
 
-| # | baby | species | style | stage (song) |
-|---|------|---------|-------|--------------|
-| 1 | Brandon | human (Louisiana Creole) | boxing / Jeet Kune Do | bayou (bayou) |
-| 2 | Arlo | terrier puppy | capoeira | backyard (backyard) |
-| 3 | Dawn | kitten | kung fu | NYC rooftop (rooftop, hip hop) |
-| 4 | Chris | piglet | sumo | farm (farm) |
-| 5 | Isaac | duckling | taekwondo | pond (pond) |
-| 6 | Teddy | bear cub | wrestling | cave (cave) |
-| 7 | Pip | bunny | muay thai | garden (garden) |
-| 8 | Blue | bug | karate | leaf (leaf) |
+| baby | species | style | home stage |
+|---|---|---|---|
+| Brandon | Creole kid, born in LA | boxing / Jeet Kune Do | Venice Beach boardwalk, Los Angeles |
+| Arlo | terrier puppy | capoeira | a backyard in Ohio |
+| Dawn | kitten | kung fu | a Brooklyn rooftop, New York City |
+| Chris | piglet | sumo | a farm in Iowa |
+| Isaac | duckling | taekwondo | a lake in Minnesota |
+| Teddy | bear cub | wrestling | a cave in Kentucky |
+| Pip | bunny | muay thai | a garden in Georgia |
+| Blue | blue bug | karate | the Everglades, Florida |
 
-(The nursery song plays on the title and select screens; stage N belongs to character N.)
+Read [the story](docs/STORY.md) for who they are and why they are fighting, and [the manual](docs/MANUAL.md)
+for controls, move lists and combo chains.
 
-## Status (2026-10-24)
+## Building
 
-Done and verified in the Studio (`check` 40 s clean, demo matches and screenshots):
-
-- title screen with attract demo, player select with big RLE-encoded portraits (also shown in demo mode)
-- painted parallax stages with ambient life (wind, candles, birds, spectators, barrel, beach ball)
-- CPS-1 look: coloured outlines, cel bands, species hands and feet that follow the forearm/shin,
-  translucent character-shaped shadows, sole contact lines and landing dust
-- per-character martial arts with organic combos, projectiles that clash mid-air, Teddy's bear hug
-- three hit reactions, expressions, voices, unique final-blow sounds, celebrations
-- 7-fight arcade ladder for a human player with a fireworks ending per character
-- per-stage music, SF2-style HUD with a readable font on every stage
-
-Not yet done or unverified:
-
-- 2-player mode (deferred by request; one controller only)
-- the hip-hop rooftop track and the character voices have not been heard by a person yet
-- Teddy and Pip are placeholder names
-- no SNES cartridge export: `snes_check` rejects the toy for structural reasons (function overrides, record
-  tables, strings, run-time sprite rendering, 242 KB WRAM). `PORT.md` groups the ~420 findings by cause and
-  lays out the rebuild; it is a second toy, not an edit of this one
+Homebrew `cc65` and `wla-dx`, Python 3 with numpy and pillow in `.venv`, then `make`. See
+[NATIVE.md](NATIVE.md) for the engine layout, the data generators in `tools/`, and the Mesen2 headless test
+harness. Everything on screen is generated from code and the small data files in `data/` and `render/`:
+no Lua, no external art tools.
 
 ## Working rules
 
-- Save every file to `toy/` as it is written to the Studio; keep both identical; delete temporary zz_* files.
-- Commit and push to GitHub at the end of every work block.
-- If the Studio tab is lost (refresh, sign-in, browser close), restore from `00_LOAD_ORDER.md`.
-  If the MCP server drops: `claude mcp remove ppu-studio`, `claude mcp add --transport http ppu-studio <url>`, then `/mcp` reconnect.
-
-
-**Cart status 2026-10-25:** the SF2T-format cart build exports a real ROM: `dist/baby-beatdown.sfc` (12 poses per fighter, 30 Hz, 0 errors). See PORT.md.
-
-**Native build 2026-10-29 (current):** the cartridge is now built locally in 65816 assembly (`make` ->
-`dist/baby-beatdown.sfc`, 2 MB, 60 Hz, all 56 poses of all 8 characters, title screen, player select, all
-eight painted stages with sky gradients, water shimmer, crowds, birds, shadows and hit sparks, round flow and
-an attract demo, two-player mode, meter supers and projectiles, chain combos, sweeps, breakable props, a
-break-the-crib bonus stage, character bios with win and lose lines, music and sound effects through an SPC700 driver) and verified headless in Mesen2. See
-`NATIVE.md`. The ppu.toys cart dialect (`cart/`) and its PORT.md notes are kept for history only.
-
-**Cart status 2026-10-28:** first emulator play found a range-contract crash, half-speed logic, no sound and a flat backdrop. Source fixed and audited (`tools/check_ranges.lua`), painted stage 1 added (`tools/cartstage.py`), audio code added but unverified; the ROM in `dist/` predates these fixes until the Studio re-exports it. See the end of PORT.md.
+- `make` must produce a ROM that boots; verify changes with `tools/emu_test.py` before committing.
+- Commit and push at the end of every work block.

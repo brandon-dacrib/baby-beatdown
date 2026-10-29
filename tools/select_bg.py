@@ -11,7 +11,7 @@ paintlib.W = 256
 from paintlib import Canvas
 W, H = 256, 224
 
-FONT = json.load(open(os.path.join(here, "..", "toy", "sources", "font.json")))["grid"]
+FONT = json.load(open(os.path.join(here, "..", "data", "font.json")))["grid"]
 
 def glyph(ch):
     b = ord(ch)

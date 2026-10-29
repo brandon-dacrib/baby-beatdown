@@ -5,7 +5,7 @@ GEN = gen/data.inc gen/sprites.bin gen/screens.inc gen/font.bin gen/audio.inc bu
 
 all: $(ROM)
 
-gen/data.inc gen/font.bin gen/char1.bin: tools/gen_asm.py cart/gamedata.json render/poses/char1.json toy/sources/font.json
+gen/data.inc gen/font.bin gen/char1.bin: tools/gen_asm.py data/gamedata.json render/poses/char1.json data/font.json
 	$(PY) tools/gen_asm.py
 
 gen/screens.inc: tools/gen_screens.py tools/faces.py tools/quantize.py render/stage1.png render/stage9.png
@@ -14,7 +14,7 @@ gen/screens.inc: tools/gen_screens.py tools/faces.py tools/quantize.py render/st
 gen/sprites.bin: gen/char1.bin
 	cat gen/char1.bin gen/char2.bin gen/char3.bin gen/char4.bin gen/char5.bin gen/char6.bin gen/char7.bin gen/char8.bin > $@
 
-gen/audio.inc gen/spc_samples.bin: tools/gen_audio.py toy/sources/songs/*.json
+gen/audio.inc gen/spc_samples.bin: tools/gen_audio.py data/songs/*.json
 	$(PY) tools/gen_audio.py
 
 build/spc.bin: src/spc.s

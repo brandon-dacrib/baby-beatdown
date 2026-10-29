@@ -9,7 +9,7 @@
   gen/screens.inc            bank-packed .incbin segments + tables: STAGE_TAB, SKY_n HDMA tables, AMB_n ambient
                              configs (scroll bands, colour cycles, crowd/candle positions), select-screen labels
 Run with .venv/bin/python; needs the stage renders in render/ (tools/scenes.py, tools/select_bg.py)."""
-import os, sys, math, struct, tempfile
+import os, sys, math, struct, tempfile, json
 import numpy as np
 from PIL import Image
 here = os.path.dirname(os.path.abspath(__file__)); root = os.path.join(here, "..")
@@ -27,7 +27,7 @@ SKY = {1: ((255, 128, 72), (250, 196, 128)), 2: ((78, 140, 236), (196, 226, 250)
        4: ((132, 186, 240), (240, 232, 208)), 5: ((84, 156, 238), (212, 238, 250)), 6: ((16, 10, 12), (62, 40, 34)),
        7: ((250, 168, 192), (255, 240, 214)), 8: ((214, 244, 160), (124, 200, 96)), 9: ((6, 6, 60), (26, 30, 110))}
 STAGE_NAMES = ["LA", "OHIO", "NYC", "IOWA", "MINN", "KENTUCKY", "GEORGIA", "FLORIDA"]   # where each baby fights (tools/select_bg.py)
-# ambient configuration per stage (adapted from toy/ambient.lua):
+# ambient configuration per stage:
 #   bands: (y0, y1, kind, amp_shift, ystep, speed) -> per-scanline BG1 horizontal scroll (kind 0 sine, 1 drift)
 #   cycle: (target rgb, amplitude 0..255, speed) -> the nearest palette colour breathes
 #   flicker: target rgb -> random darkening (candle / window light)
@@ -91,7 +91,7 @@ for n in range(1, 10):
     stage_info[n] = (pals, len(tiles))
     print(f"stage{n}: {len(order)} tiles")
 
-# ---------------------------------------------------------------- title logo (as toy/screens.lua, 4bpp)
+# ---------------------------------------------------------------- title logo (4bpp)
 GL = {
   "B": ["1111.", "1...1", "1...1", "1111.", "1...1", "1...1", "1111."], "A": [".111.", "1...1", "1...1", "11111", "1...1", "1...1", "1...1"],
   "Y": ["1...1", "1...1", ".1.1.", "..1..", "..1..", "..1..", "..1.."], "E": ["11111", "1....", "1....", "1111.", "1....", "1....", "11111"],
@@ -221,43 +221,71 @@ def spark(frame):
 def block_spark():
     idx = paint((ell(16, 16, 8, 8), LBLUE), (ell(16, 16, 5, 5), WHITE), (box(15, 4, 16, 27), BLUE), (box(4, 15, 27, 16), BLUE))
     return outline(idx)
-# the toy's 16x16 projectile art (toy/fx.lua cells 0..7: one per character), centred in 32x32 cells
-import re
-FXT = {int(m.group(1)): m.group(2) for m in re.finditer(r'\[(\d+)\] = "([0-9a-f]+)"', open(os.path.join(root, "toy", "fx.lua")).read())}
-def decode_tile(hx):
-    b = bytes.fromhex(hx); idx = np.zeros((8, 8), np.int32)
-    for row in range(8):
-        p0, p1, p2, p3 = b[row * 2], b[row * 2 + 1], b[16 + row * 2], b[16 + row * 2 + 1]
-        for col in range(8):
-            bit = 7 - col
-            idx[row, col] = ((p0 >> bit) & 1) | (((p1 >> bit) & 1) << 1) | (((p2 >> bit) & 1) << 2) | (((p3 >> bit) & 1) << 3)
+# the projectiles, drawn at the full 32x32 with outlines, highlights and a motion trail (they fly to the right;
+# the game mirrors them when thrown left). One per baby's super, then the four crouch shots.
+def trail(idx, y, x0, x1, col):
+    for x in range(x0, x1):
+        if 0 <= x < 32 and idx[y, x] == 0 and (x & 1) == 0: idx[y, x] = col
+def shine(idx, cx, cy, r):
+    idx[ell(cx, cy, r, r * 0.7)] = WHITE
+def proj_diaper():      # Brandon: DIAPER DUMP, a flying diaper, tabs flapping
+    body = ell(18, 17, 10, 8) | box(10, 9, 26, 17)
+    idx = paint((body, WHITE), (box(10, 9, 26, 11), LBLUE), (box(9, 11, 13, 15) | box(23, 11, 27, 15), LBLUE), (ell(18, 20, 4, 2), LGREY))
+    idx = outline(idx); trail(idx, 14, 0, 8, LGREY); trail(idx, 18, 0, 7, LGREY)
     return idx
-def toy_cell(cell):
-    base = 384 + (cell % 8) * 2 + (cell // 8) * 32
-    idx = np.zeros((32, 32), np.int32)
-    for ty in range(2):
-        for tx in range(2):
-            idx[8 + ty * 8: 16 + ty * 8, 8 + tx * 8: 16 + tx * 8] = decode_tile(FXT[base + ty * 16 + tx])
-    return idx
-def ins(x, y, cx, cy, rx, ry): return ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 <= 1
-def special_cell(fn):
-    idx = np.zeros((32, 32), np.int32)
-    for y in range(16):
-        for x in range(16): idx[8 + y, 8 + x] = fn(x, y)
+def proj_bottle():      # Arlo: a milk bottle (rush super; the cell shows up only if it ever flies)
+    body = box(10, 10, 24, 26) | ell(17, 26, 7, 3)
+    idx = paint((body, WHITE), (box(10, 10, 24, 18), LBLUE), (box(14, 5, 20, 10), ORANGE), (box(15, 3, 19, 5), ORANGE)); shine(idx, 13, 20, 1.5)
     return outline(idx)
-def binky(x, y):
-    if ins(x, y, 8, 9, 5.5, 3.5): return BLUE
-    if ins(x, y, 8, 4, 3, 3) and not ins(x, y, 8, 4, 1.4, 1.4): return PINK
-    return 0
-def yarn(x, y):
-    if not ins(x, y, 8, 8, 6, 6): return 0
-    return PURPLE if ((x + y) % 5 == 0 or (x - y) % 7 == 0) else PINK
-def bubble(x, y):
-    if ins(x, y, 8, 8, 5.5, 5.5): return WHITE if ins(x, y, 6, 6, 1.5, 1.5) else LBLUE
-    return 0
-def glob(x, y):
-    if ins(x, y, 9, 8, 6, 4) or ins(x, y, 3, 8, 2.5, 2): return LGREEN if y < 7 else GREEN
-    return 0
+def proj_rattle():      # Dawn: a rattle
+    idx = paint((box(6, 15, 20, 18), BROWN), (ell(24, 16, 7, 7), PINK), (ell(6, 16, 3, 3), BROWN), (ell(26, 13, 2, 2), WHITE), (ell(24, 16, 7, 7) & (yy > 18), PURPLE))
+    idx = outline(idx); trail(idx, 16, 0, 4, PINK)
+    return idx
+def proj_binky():       # Chris: BINKY BLAST, a big pacifier
+    shield = ell(14, 16, 9, 8); ring = ell(26, 16, 5, 5) & ~ell(26, 16, 2.5, 2.5); nip = ell(7, 16, 4, 3)
+    idx = paint((shield, PINK), (shield & ((xx + yy) % 6 < 2), WHITE), (ring, BLUE), (nip, LGREY), (ell(14, 16, 3, 3), BLUE)); shine(idx, 10, 12, 1.6)
+    idx = outline(idx); trail(idx, 13, 0, 3, PINK); trail(idx, 19, 0, 3, PINK)
+    return idx
+def proj_bubble():      # Isaac: BUBBLE BURP, a big soap bubble
+    b = ell(16, 16, 12, 12)
+    idx = paint((b, LBLUE), (b & ~ell(16, 16, 9, 9), BLUE), (ell(16, 16, 12, 12) & ((xx * 2 + yy) % 9 == 0), WHITE))
+    idx[ell(11, 11, 3, 2)] = WHITE; idx[ell(21, 21, 1.5, 1.2)] = WHITE
+    return outline(idx)
+def proj_block():       # Teddy: TANTRUM TOSS, a thrown wooden letter block
+    b = box(6, 6, 25, 25)
+    idx = paint((b, YELLOW), (box(6, 6, 25, 8) | box(6, 6, 8, 25), ORANGE), (box(23, 6, 25, 25) | box(6, 23, 25, 25), BROWN),
+                (box(12, 11, 14, 20) | box(14, 11, 19, 13) | box(14, 15, 18, 17) | box(14, 18, 19, 20), RED))
+    idx = outline(idx); trail(idx, 10, 0, 5, YELLOW); trail(idx, 20, 0, 5, YELLOW)
+    return idx
+def proj_carrot():      # Pip: a carrot
+    body = (np.abs(yy - 17) <= (xx - 4) * 0.28 + 1) & (xx >= 4) & (xx <= 25)
+    idx = paint((body, ORANGE), (body & (yy > 18), BROWN if False else ORANGE), (box(25, 12, 31, 14) | box(25, 16, 30, 18) | box(25, 20, 29, 22), GREEN), (body & ((xx % 5) == 0), BROWN))
+    idx[body & (yy < 15)] = YELLOW
+    return outline(idx)
+def proj_spit():        # Blue: SPIT-UP SPRAY, a green glob with droplets
+    g = ell(18, 16, 9, 7) | ell(9, 17, 4, 3)
+    idx = paint((g, GREEN), (g & (yy < 14), LGREEN), (ell(27, 9, 2, 2) | ell(28, 23, 1.5, 1.5) | ell(4, 11, 1.5, 1.5), LGREEN))
+    idx = outline(idx); trail(idx, 16, 0, 3, LGREEN)
+    return idx
+def spc_binky():        # Brandon's crouch shot: a small pacifier
+    shield = ell(14, 16, 6, 5); ring = ell(22, 16, 3.5, 3.5) & ~ell(22, 16, 1.5, 1.5)
+    idx = paint((shield, BLUE), (ring, PINK), (ell(9, 16, 3, 2), LGREY)); shine(idx, 12, 13, 1.2)
+    return outline(idx)
+def spc_yarn():         # Dawn: a ball of yarn with a loose end
+    b = ell(16, 16, 8, 8)
+    idx = paint((b, PINK), (b & (((xx + yy) % 5 == 0) | ((xx - yy) % 7 == 0)), PURPLE), (box(2, 22, 9, 23), PINK)); shine(idx, 12, 12, 1.5)
+    return outline(idx)
+def spc_bubble():       # Isaac: a small bubble
+    b = ell(16, 16, 7, 7)
+    idx = paint((b, LBLUE), (b & ~ell(16, 16, 5, 5), BLUE)); idx[ell(13, 13, 2, 1.5)] = WHITE
+    return outline(idx)
+def spc_glob():         # Blue: a spit glob
+    g = ell(17, 16, 7, 5) | ell(9, 17, 3, 2.5)
+    idx = paint((g, GREEN), (g & (yy < 15), LGREEN))
+    return outline(idx)
+PROJ_CELLS = [proj_diaper(), proj_bottle(), proj_rattle(), proj_binky(), proj_bubble(), proj_block(), proj_carrot(), proj_spit()]
+SPC_CELLS = [spc_binky(), spc_yarn(), spc_bubble(), spc_glob()]
+def ins(x, y, cx, cy, rx, ry): return ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 <= 1
 def obj_barrel():
     body = ell(16, 16, 10, 14)
     idx = paint((body, BROWN), (body & ((yy == 7) | (yy == 16) | (yy == 25)), DGREY), (body & (xx < 10), ORANGE if False else BROWN))
@@ -283,8 +311,8 @@ def obj_dew():
 CELLS = [("BARREL", obj_barrel()), ("CRATE", obj_crate()), ("POT", obj_pot()), ("DEW", obj_dew()),
          ("BIRD0", bird(True)), ("BIRD1", bird(False)), ("BFLY0", butterfly(True)), ("BFLY1", butterfly(False)),
          ("CANDLE0", candle(0)), ("SHADOW", shadow()), ("SPARK0", spark(0)), ("SPARK1", spark(1))]
-CELLS += [(f"PROJ{i}", toy_cell(i)) for i in range(8)]
-CELLS += [("SPC0", special_cell(binky)), ("SPC1", special_cell(yarn)), ("SPC2", special_cell(bubble)), ("SPC3", special_cell(glob))]
+CELLS += [(f"PROJ{i}", PROJ_CELLS[i]) for i in range(8)]
+CELLS += [(f"SPC{i}", SPC_CELLS[i]) for i in range(4)]
 assert len(CELLS) == 24, "OBJ rows 8..31 hold 24 cells"
 fx = b"".join(encode_tile(idx[ty * 8:ty * 8 + 8, tx * 8:tx * 8 + 8]) for _, idx in CELLS for ty in range(4) for tx in range(4))
 blob("fx_tiles", "fx.bin", fx)

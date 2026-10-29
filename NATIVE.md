@@ -1,8 +1,9 @@
 # Native SNES build (65816 + SPC700), 2026-10-29
 
 The cartridge is built here, with no Studio or Lua in the loop: `make` produces `dist/baby-beatdown.sfc`
-(2 MB LoROM/FastROM, 60 Hz; about 45 % of it is still free for assets). The Studio toy in `toy/` stays as the design reference and the source of the
-art and tuning data.
+(2 MB LoROM/FastROM, 60 Hz; about 38 % of it is still free for assets). The original Lua toy has been removed;
+its tuning data lives on as `data/gamedata.json`, its songs as `data/songs/*.json`, its font as `data/font.json`
+and its dumped fighter poses as `render/poses_orig/charN.json`.
 
 ## Toolchain
 
@@ -17,7 +18,7 @@ art and tuning data.
 
 | path | what |
 |---|---|
-| `src/main.s` | boot, video init, NMI (OAM, whole BG3 map, one 2 KB upload per frame, palette requests), engine (port of `cart/main.lua`), HUD, audio (IPL upload, command send, 60 Hz sequencer, sfx) |
+| `src/main.s` | boot, video init, NMI (OAM, whole BG3 map, one 2 KB upload per frame, palette requests), engine (SF2T-style keyframes and boxes), HUD, audio (IPL upload, command send, 60 Hz sequencer, sfx) |
 | `src/screens.s` | title, player select (1P or 2P), fight flow (rounds, callouts, match end, attract demo), stage loader, fades, HDMA sky + scroll bands, ambient sprites, palette cycle/flicker, shadows, hit sparks, text |
 | `src/specials.s` | meter supers (projectile or rush per baby, with the name callout), crouch-punch shots for four babies, the two projectile slots |
 | `src/snes.inc` | register names, width macros, byte-table load macros |
@@ -28,7 +29,7 @@ art and tuning data.
 | `tools/select_bg.py` | the player-select map: the United States with the eight stage locations |
 | `tools/scenes2.py` | paints the eight 384x224 arenas in the Street Fighter II recipe (sky band, tall middle layer with large spectators whose faces and lip colour follow their skin tone, flanking props, perspective floors); `render/stageN.png` |
 | `tools/gen_screens.py` | the nine paintings (stages 1..8 + the select map) as tiles/maps/palettes, title logo, 96x96 portraits + 32x32 icons, 32x32 effect cells (crowd, birds, butterflies, candles, shadow, sparks), sky gradient HDMA tables, per-stage ambient records, select labels; packs it all into 32 KB banks (`gen/screens.inc`) |
-| `tools/gen_audio.py` | synthesizes the 15 instruments, BRR-encodes them, converts all nine `toy/sources/songs/*.json` to `[delta frames][cmd][p1][p2][p3]` streams (48 ticks per beat) |
+| `tools/gen_audio.py` | synthesizes the 17 instruments, BRR-encodes them, converts all nine `data/songs/*.json` to `[delta frames][cmd][p1][p2][p3]` streams (48 ticks per beat) |
 | `tools/emu_test.py` | runs the ROM in Mesen2's test runner with injected pad input; Mesen's own PNG screenshot + zero page + OAM/CGRAM/VRAM/SPC probes come back through the 128 KB save RAM (Mesen's Lua may not write files). `--bg3` / `--oam` print the text layer and sprite table |
 | `tools/fixsum.py` | header checksum |
 
@@ -91,7 +92,7 @@ art and tuning data.
 - **Hit sparks**: 3-frame burst on a hit, blue flash on a block, at the attack box centre.
 - **Loads happen with NMI and HDMA off** (fade_out turns them off, fade_in back on): both move the PPU address
   registers under the loader's feet otherwise.
-- **Engine** is the Lua engine line for line, 16-bit parallel arrays indexed by X = 0/2, 60 Hz logic.
+- **Engine**: 16-bit parallel arrays indexed by X = 0/2, 60 Hz logic, SF2T-style 4-byte keyframes and centre/half-extent boxes.
 - **Audio**: the SPC700 only executes commands; the main CPU plays the stage's song (nine songs, long-addressed
   from bank 63) on voices 0..5 and sound effects on 6..7 (hat on every attack, a low thump plus snare on every
   hit, tom on block, a long slam plus crash on the KO blow, bell on a super, pluck notes on the select screen).

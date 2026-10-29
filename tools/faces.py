@@ -1,6 +1,6 @@
 # faces.py: paints the eight baby portraits for the player-select screen.
 # Each face is drawn supersampled (4x) on a transparent square, downsampled to a 96x96 big portrait and a
-# 32x32 grid icon, quantized to one 15-colour palette per character, and emitted as toy/faceN.lua
+# 32x32 grid icon, quantized to one 15-colour palette per character, and used by tools/gen_screens.py
 # (BG 4bpp tiles for the big portrait, OBJ 4bpp tiles for the icon). python faces.py renders
 # render/faces_preview.png as well.
 import sys, os, base64, numpy as np

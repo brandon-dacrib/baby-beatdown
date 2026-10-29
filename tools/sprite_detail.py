@@ -7,7 +7,7 @@ silhouettes and features and adds what 16-bit sprites usually have on top:
   * a one-pixel darker rim inside the outline on the shadow side (bottom / right)
   * a one-pixel lighter rim inside the outline on the lit side (top / left)
   * fur speckle on the animal babies' mid tone, a stitched seam on the diaper
-Palette indices (toy/art.lua): 1 outline, 2 fur dark, 3 fur mid, 4 fur light, 5 diaper, 6 diaper shade,
+Palette indices (the original toy renderer): 1 outline, 2 fur dark, 3 fur mid, 4 fur light, 5 diaper, 6 diaper shade,
 7 accent dark, 8 accent light, 9 eye white, 10 pupil, 11 pink, 12 belly light, 13 nose, 14 highlight, 15 misc."""
 import json, os, sys
 import numpy as np
