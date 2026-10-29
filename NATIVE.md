@@ -1,7 +1,7 @@
 # Native SNES build (65816 + SPC700), 2026-10-29
 
 The cartridge is built here, with no Studio or Lua in the loop: `make` produces `dist/baby-beatdown.sfc`
-(2 MB LoROM/FastROM, 60 Hz). The Studio toy in `toy/` stays as the design reference and the source of the
+(2 MB LoROM/FastROM, 60 Hz; about 45 % of it is still free for assets). The Studio toy in `toy/` stays as the design reference and the source of the
 art and tuning data.
 
 ## Toolchain
@@ -54,9 +54,14 @@ art and tuning data.
 - **Fighters are single 64x64 OBJs** (OBSEL size 5: 32x32 / 64x64), P1 tiles at OBJ columns 0..7, P2 at
   8..15, rows 0..7. A pose is 8 x 256-byte DMAs; only one upload (pose or portrait half) happens per NMI.
   Rows 8.. hold the 17 effect cells; the select icons borrow the fighter rows.
-- **Mode 1**: BG1 = painted stage (4bpp, palettes 0,3..7, tiles at VRAM $0000, map at $4000), BG2 = logo /
-  portrait (tiles at $4800.., map at $4400, blank tile 206), BG3 = text (2bpp font at $3000, map at $3C00,
-  the whole 1792-byte shadow is DMA'd every frame; palettes 5 yellow, 6 red, 7 white).
+- **Mode 1**: BG1 = painted stage (4bpp, palettes 0,3..7, up to 1024 tiles at VRAM $0000, 64x32 map at $4000
+  stored as two 32x32 screens), BG2 = logo / portrait (both at tiles 192.., VRAM $4C00, map at $4800, blank
+  tile 190), BG3 = text (2bpp font at $5600 = glyphs 704.. under name base $4000, map at $5C00, the whole
+  1792-byte shadow is DMA'd every frame; palettes 5 yellow, 6 red, 7 white).
+- **Scrolling arena** (the SF2 feel): each stage is 384 px wide (the 256 px painting with its outer 64 px
+  mirrored on each side), fighters live in world coordinates, the camera follows their midpoint and keeps both
+  on screen (`update_camera`), every HDMA scroll line carries the camera, cloud bands move at half speed and the
+  floor lines slide faster toward the bottom for perspective.
 - **Sky gradient**: HDMA channels 1 and 3 write the fixed colour (COLDATA) per 8-line step; colour 0 is black
   and the backdrop takes part in colour math, so the gradient shows wherever the painting is transparent.
   (Writing CGRAM by HDMA corrupts other palette entries in Mesen2, so the palette is never touched mid-frame.)
@@ -71,8 +76,9 @@ art and tuning data.
   registers under the loader's feet otherwise.
 - **Engine** is the Lua engine line for line, 16-bit parallel arrays indexed by X = 0/2, 60 Hz logic.
 - **Audio**: the SPC700 only executes commands; the main CPU plays the stage's song (nine songs, long-addressed
-  from bank 29) on voices 0..5 and sound effects on 6..7 (hat on every attack, snare on hit, tom on block, crash
-  on KO, pluck notes on the select screen).
+  from bank 63) on voices 0..5 and sound effects on 6..7 (hat on every attack, a low thump plus snare on every
+  hit, tom on block, a long slam plus crash on the KO blow, bell on a super, pluck notes on the select screen).
+  17 samples (32-entry directory at $0300, ADSR table at $0380).
 
 ## Verify
 

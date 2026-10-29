@@ -2,7 +2,7 @@
 """gen_audio.py: synthesize the instruments, BRR-encode them, and convert the ppu.toys songs into the cart's
 60 Hz event streams.
 
-  gen/spc_samples.bin  sample directory (16 entries x 4 bytes, at SPC $0300) + ADSR table (16 x 2) + BRR data
+  gen/spc_samples.bin  sample directory (32 entries x 4 bytes, at SPC $0300) + ADSR table (32 x 2, at $0380) + BRR data
                        (loaded to SPC RAM at $0300 by the boot upload, right after the driver)
   gen/audio.inc        SAMPLE_* ids, PITCH_TAB (pitch words per midi note 24..107 for a 32 kHz loop of 128
                        samples), SFX_* macros' data, and SONG_<name>: [delta frames][cmd][p1][p2][p3]... 0xFF = loop
@@ -68,6 +68,22 @@ def oneshot_hat(n=1600, decay=350, seed=3):
 def oneshot_crash(n=14000):
     return oneshot_hat(n, 5000, 11)
 
+def oneshot_thump(n=2600):
+    out = []; ph = 0.0
+    for i in range(n):
+        f = 70 + 60 * math.exp(-i / 250)
+        ph += 2 * math.pi * f / RATE
+        out.append(math.sin(ph) * math.exp(-i / 700) * 0.9 + 0.1 * math.sin(3 * ph) * math.exp(-i / 200))
+    return out
+
+def oneshot_slam(n=9000):
+    nz = noise(n, 13); out = []; ph = 0.0
+    for i in range(n):
+        f = 45 + 70 * math.exp(-i / 400)
+        ph += 2 * math.pi * f / RATE
+        out.append(0.8 * math.sin(ph) * math.exp(-i / 2200) + 0.35 * nz[i] * math.exp(-i / 500))
+    return out
+
 def oneshot_clap(n=4000):
     nz = noise(n, 5); out = []
     for i in range(n):
@@ -91,6 +107,8 @@ INSTR = [  # name, waveform, looped, adsr (ar, dr, sl, sr) ; ar 0-15 (15 fastest
     ("tom",     oneshot_tom(), False,                               (15, 7, 7, 0)),
     ("crash",   oneshot_crash(), False,                             (15, 7, 7, 0)),
     ("clap",    oneshot_clap(), False,                              (15, 7, 7, 0)),
+    ("thump",   oneshot_thump(), False,                             (15, 7, 7, 0)),
+    ("slam",    oneshot_slam(), False,                              (15, 7, 7, 0)),
 ]
 INSTR_ID = {n: i for i, (n, *_r) in enumerate(INSTR)}
 
@@ -133,7 +151,7 @@ def brr_encode(samples, looped):
 # ---------------------------------------------------------------- build the sample block (SPC $0300..)
 DIR_ADDR = 0x0300
 dir_bytes = bytearray(); adsr_bytes = bytearray(); data = bytearray()
-base = DIR_ADDR + 16 * 4 + 16 * 2          # samples start after the directory and the ADSR table
+base = DIR_ADDR + 32 * 4 + 32 * 2          # samples start after the directory (32 entries) and the ADSR table ($0380)
 for name, wave, looped, (ar, dr, sl, sr) in INSTR:
     brr = brr_encode(wave, looped)
     start = base + len(data)
@@ -141,8 +159,8 @@ for name, wave, looped, (ar, dr, sl, sr) in INSTR:
     dir_bytes += struct.pack("<HH", start, loop)
     adsr_bytes += bytes((0x80 | (dr << 4) | ar, (sl << 5) | sr))
     data += brr
-while len(dir_bytes) < 64: dir_bytes += struct.pack("<HH", base, base)
-while len(adsr_bytes) < 32: adsr_bytes += b"\x8F\x00"
+while len(dir_bytes) < 128: dir_bytes += struct.pack("<HH", base, base)
+while len(adsr_bytes) < 64: adsr_bytes += b"\x8F\x00"
 blob = bytes(dir_bytes) + bytes(adsr_bytes) + bytes(data)
 open(os.path.join(OUT, "spc_samples.bin"), "wb").write(blob)
 print(f"samples: {len(INSTR)} instruments, {len(data)} bytes BRR, block {len(blob)} bytes at SPC ${DIR_ADDR:04X}")

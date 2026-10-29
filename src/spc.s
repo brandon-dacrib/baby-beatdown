@@ -5,7 +5,7 @@
 ;   op 00: set volume      p1 = left, p2 = right
 ;   op 01: note on         p1 = sample, p2 = pitch low, p3 = pitch high (ADSR from the table at $0340)
 ;   op 10: note off (release)
-; Sample directory at $0300 (DIR = $03), ADSR table at $0340 (2 bytes per sample), BRR data after.
+; Sample directory at $0300 (DIR = $03), ADSR table at $0380 (2 bytes per sample), BRR data after.
 .MEMORYMAP
  SLOTSIZE $10000
  DEFAULTSLOT 0
@@ -26,7 +26,7 @@
 .DEFINE PORT1 $F5
 .DEFINE PORT2 $F6
 .DEFINE PORT3 $F7
-.DEFINE ADSR  $0340
+.DEFINE ADSR  $0380
 
 start:
   mov x,#$EF
@@ -99,7 +99,7 @@ noteon:
   mov a,PORT1
   asl a
   mov y,a
-  mov a,!$0340+y
+  mov a,!$0380+y
   push a
   mov a,x
   or a,#$05
@@ -110,7 +110,7 @@ noteon:
   asl a
   inc a
   mov y,a
-  mov a,!$0340+y
+  mov a,!$0380+y
   push a
   mov a,x
   or a,#$06

@@ -10,9 +10,9 @@ RS_INTRO = 0
 RS_FIGHT = 1
 RS_END   = 2
 RS_MATCH = 3
-PAL5 = (5 << 10) | (1 << 13)        ; yellow text
-PAL6 = (6 << 10) | (1 << 13)        ; red text
-PAL7 = (7 << 10) | (1 << 13)        ; white text
+PAL5 = (5 << 10) | (1 << 13) | FONT_BASE        ; yellow text
+PAL6 = (6 << 10) | (1 << 13) | FONT_BASE        ; red text
+PAL7 = (7 << 10) | (1 << 13) | FONT_BASE        ; white text
 BTN_ANY = $F0C0                     ; B Y Select Start A X
 GRID_X = 112
 GRID_Y = 112
@@ -96,7 +96,7 @@ GRID_Y = 112
 .endproc
 
 .proc clear_row                     ; X = byte offset of the row
-  lda #0
+  lda #FONT_BASE               ; glyph 0 is blank
   ldy #32
 : sta bg3_shadow,x
   inx
@@ -108,7 +108,7 @@ GRID_Y = 112
 
 .proc clear_bg3
   ldx #0
-  lda #0
+  lda #FONT_BASE
 : sta bg3_shadow,x
   inx
   inx
@@ -222,7 +222,7 @@ GRID_Y = 112
   tax                       ; *8
   ldy stage
   a8
-  lda STAGE_BANK,y
+  lda STAGE_TBANK,y
   sta dma_bank
   a16
   phx
@@ -234,9 +234,14 @@ GRID_Y = 112
   jsr dma_vram
   plx
   phx
+  ldy stage
+  a8
+  lda STAGE_MBANK,y
+  sta dma_bank
+  a16
   lda STAGE_TAB+4,x
   tax
-  ldy #1792
+  ldy #4096
   lda #VRAM_BG1_MAP
   jsr dma_vram
   plx
@@ -302,10 +307,12 @@ GRID_Y = 112
   tay
   lda (amb_ptr),y
   and #$00FF
+  sta tmp0
   asl a
+  adc tmp0                  ; 3 bytes per crowd entry (x word, y byte)
   sec
   adc amb_crowd
-  sta amb_cand              ; n, xy pairs
+  sta amb_cand              ; n, xy entries
   jsr reset_ambient
   ; neutral scroll table until the first frame builds one: 112 + 112 lines of 0, end
   a8
@@ -328,8 +335,13 @@ GRID_Y = 112
 .proc clear_bg2
   lda #VRAM_BG2_MAP
   sta VMADDL
-  ldx #1024
+  ldx #992
   lda #BLANK2
+: sta VMDATAL
+  dex
+  bne :-
+  ldx #32                   ; row 31 (off screen) is tile BLANK2's pixel data: zero
+  lda #0
 : sta VMDATAL
   dex
   bne :-
@@ -410,12 +422,24 @@ GRID_Y = 112
   dec a
   jsr play_song
   jsr fighters_reset
-  lda #1088
+  lda #2112
   sta fx
-  lda #3008
+  lda #4032
   sta fx+2
   jsr restore_obj_pals
-  ; logo on BG2 rows 3..5, columns 3..28 (palette 2)
+  lda #64
+  sta cam
+  ; logo tiles (they share VRAM with the select portrait), then its map on BG2 rows 3..5, columns 3..28
+  a8
+  lda #^logo_tiles
+  sta dma_bank
+  a16
+  lda #VRAM_BG2_TILES + LOGO_TILE * 16
+  ldx #.loword(logo_tiles)
+  ldy #logo_tiles_end - logo_tiles
+  jsr dma_vram
+  lda #$80
+  sta dma_bank
   jsr clear_bg2
   ldy #0
   lda #VRAM_BG2_MAP + 3 * 32 + 3
@@ -481,9 +505,9 @@ GRID_Y = 112
   jsr update_fighter
   ldx #2
   jsr update_fighter
-  lda #1088                 ; the demo pair pose in place (lunges would walk them into each other)
+  lda #2112                 ; the title pair pose in place (lunges would walk them into each other)
   sta fx
-  lda #3008
+  lda #4032
   sta fx+2
   stz fvx
   stz fvx+2
@@ -544,6 +568,7 @@ GRID_Y = 112
 : stz sel_t
   stz sel_ok1
   stz sel_ok2
+  stz cam
   lda #9
   jsr load_stage
   lda #8
@@ -1262,10 +1287,12 @@ GRID_Y = 112
   jsr @one
   ldx #2
   jsr @one
-  lda #1024
+  lda #2176                 ; 192 -/+ 56 px
   sta fx
-  lda #2816
+  lda #3968
   sta fx+2
+  lda #64
+  sta cam
   lda #1
   sta fface
   lda #$FFFF
@@ -1481,6 +1508,7 @@ GRID_Y = 112
   ldx #2
   jsr update_fighter
   jsr separate
+  jsr update_camera
   jsr update_projectiles
   jsr draw_fighters
   jsr draw_shadows
@@ -1701,6 +1729,9 @@ GRID_Y = 112
   jsr fx_tile
   sta oa_tile
   lda spk_x,x
+  sec
+  sbc cam
+  and #$01FF
   sta oa_x
   lda spk_y,x
   sta oa_y
@@ -1762,7 +1793,10 @@ GRID_Y = 112
   lda fx,x
   asr4
   sec
+  sbc cam
+  sec
   sbc #16
+  and #$01FF
   sta oa_x
   lda #FLOOR - 29
   sta oa_y
@@ -2042,11 +2076,14 @@ GRID_Y = 112
   stz tmp1                  ; i
 @cr:
   iny
-  lda (amb_ptr),y
-  and #$00FF
+  lda (amb_ptr),y           ; world x (word)
+  sec
+  sbc cam
   sec
   sbc #8
+  and #$01FF
   sta oa_x
+  iny
   iny
   lda (amb_ptr),y
   and #$00FF
@@ -2101,10 +2138,13 @@ GRID_Y = 112
 @cd:
   iny
   lda (amb_ptr),y
-  and #$00FF
+  sec
+  sbc cam
   sec
   sbc #8
+  and #$01FF
   sta oa_x
+  iny
   iny
   lda (amb_ptr),y
   and #$00FF
@@ -2213,7 +2253,9 @@ GRID_Y = 112
 .endproc
 
 ; per-scanline BG1 horizontal scroll table (HDMA channel 2, mode 2): rebuilt every frame into the
-; buffer the PPU is not reading; the NMI points the channel at hofs_next.
+; buffer the PPU is not reading; the NMI points the channel at hofs_next. Every line scrolls by the camera;
+; drift bands (clouds) scroll at half speed, sine bands add shimmer or sway, the floor (lines 160..223) slides
+; faster toward the bottom for a little perspective.
 ; band: y0, lines, kind (0 sine, 1 drift), amp shift, y step, speed (sine: phase per frame; drift: shift)
 .proc build_hofs
   lda hofs_flip
@@ -2237,8 +2279,7 @@ GRID_Y = 112
   lda tmp4
   bne :+
   brl @tail
-:
-  dec tmp4
+: dec tmp4
   lda (amb_ptr),y
   and #$00FF
   sec
@@ -2295,18 +2336,25 @@ GRID_Y = 112
   tay
   ldsby SINE64
   ldy hb_amp
-  beq @store
+  beq :++
 : asr1
   dey
   bne :-
+: clc
+  adc cam
   bra @store
 @drift:
   lda frame_ctr
   ldy hb_speed
-  beq @store
+  beq :++
 : lsr a
   dey
   bne :-
+: sta tmp0
+  lda cam
+  lsr a                     ; far layer: half the camera
+  clc
+  adc tmp0
 @store:
   and #$03FF
   a8
@@ -2319,25 +2367,64 @@ GRID_Y = 112
   inc hb_i
   lda hb_i
   cmp hb_cnt
-  bne @line
-  lda tmp3
+  beq :+
+  brl @line
+: lda tmp3
   clc
   adc hb_cnt
   sta tmp3
   ply
   brl @band
 @tail:
+  lda tmp3
+  cmp #160
+  bcs @no_floor
+  lda #160
+  sec
+  sbc tmp3
+  jsr hofs_gap
+  ; the floor: 64 lines, cam + cam * i / 256
+  lda #64 | $80
+  a8
+  sta hofs_a,x
+  a16
+  inx
+  stz hb_acc
+  ldy #64
+@floor:
+  lda hb_acc
+  xba
+  and #$00FF
+  clc
+  adc cam
+  and #$03FF
+  a8
+  sta hofs_a,x
+  xba
+  sta hofs_a+1,x
+  a16
+  inx
+  inx
+  lda hb_acc
+  clc
+  adc cam
+  sta hb_acc
+  dey
+  bne @floor
+  bra @end
+@no_floor:
   lda #224
   sec
   sbc tmp3
   jsr hofs_gap
+@end:
   a8
   stz hofs_a,x
   a16
   rts
 .endproc
 
-; A = lines of zero scroll to emit at hofs_a + X (entries of at most 127 lines)
+; A = lines scrolled by the camera alone, emitted at hofs_a + X (entries of at most 127 lines)
 .proc hofs_gap
 @l:
   cmp #0
@@ -2358,12 +2445,59 @@ GRID_Y = 112
 @emit:
   a8
   sta hofs_a,x
-  stz hofs_a+1,x
-  stz hofs_a+2,x
+  a16
+  lda cam
+  and #$03FF
+  a8
+  sta hofs_a+1,x
+  xba
+  sta hofs_a+2,x
   a16
   inx
   inx
   inx
+  rts
+.endproc
+
+; camera follows the pair; both fighters stay within the screen
+.proc update_camera
+  lda fx
+  clc
+  adc fx+2
+  lsr a
+  asr4
+  sec
+  sbc #128
+  bpl :+
+  lda #0
+: cmp #WORLD_W - 256 + 1
+  bcc :+
+  lda #WORLD_W - 256
+: sta cam
+  asl a
+  asl a
+  asl a
+  asl a
+  sta tmp0                  ; cam * 16
+  ldx #0
+@clamp:
+  lda tmp0
+  clc
+  adc #16 * 16
+  cmp fx,x
+  bcc :+
+  beq :+
+  sta fx,x
+: lda tmp0
+  clc
+  adc #240 * 16
+  cmp fx,x
+  bcs :+
+  sta fx,x
+: inx
+  inx
+  cpx #4
+  bne @clamp
   rts
 .endproc
 

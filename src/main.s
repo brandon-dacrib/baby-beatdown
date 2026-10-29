@@ -20,18 +20,21 @@ ST_KO = 7
 ST_SUPER = 8
 ST_WIN = 9
 X_MIN = 256
-X_MAX = 3840
+X_MAX = (384 - 16) * 16                 ; the arena is 384 px wide; the camera shows 256 of it
+WORLD_W = 384
 VRAM_BG1_TILES = $0000
-VRAM_FONT      = $3000
-VRAM_BG3_MAP   = $3C00
-VRAM_BG1_MAP   = $4000
-VRAM_OBJ       = $6000
+VRAM_BG1_MAP   = $4000                     ; 64x32 (the arena scrolls)
+VRAM_BG2_MAP   = $4800
 VRAM_BG2_TILES = $4000
-VRAM_BG2_MAP   = $4400
-LOGO_TILE      = 128                       ; BG2 tiles 128..205 (VRAM $4800)
-FACE_TILE      = 208                       ; BG2 tiles 208..351 (VRAM $4D00)
-BLANK2         = 206                       ; an all-zero BG2 tile
-HUD_PAL_WORD   = (5 << 10) | (1 << 13)    ; BG3 palette 5, priority 1
+LOGO_TILE      = 192                       ; BG2 tiles 192.. (VRAM $4C00): the logo on the title, the portrait on the select screen
+FACE_TILE      = 192
+BLANK2         = 190                       ; BG2 tile whose pixels are BG2 map row 31 (kept zero)
+FONT_BASE      = 704                       ; BG3 tiles 704..754 (VRAM $5600) under the BG3 name base $4000; ORs cleanly with glyph ids < 64
+VRAM_FONT_BASE = $4000
+VRAM_FONT      = VRAM_FONT_BASE + FONT_BASE * 8
+VRAM_BG3_MAP   = $5C00
+VRAM_OBJ       = $6000
+HUD_PAL_WORD   = (5 << 10) | (1 << 13) | FONT_BASE    ; BG3 palette 5, priority 1
 SKY_COLOUR     = 12959                     ; rgb(252,162,100) in BGR555
 POSES_PER_CHAR = 56
 
@@ -212,6 +215,9 @@ cur_tmp:    .res 2
 cur_pad:    .res 2
 p1_done:    .res 2
 demo_moves: .res 2
+cam:        .res 2      ; camera x (px) into the 384 px arena
+hb_base:    .res 2
+hb_acc:     .res 2
 
 ; ------------------------------------------------------------------ ROM data
 .segment "RODATA"
@@ -349,7 +355,7 @@ tick_clock:
   a8
   lda #$09
   sta BGMODE                ; mode 1, BG3 priority
-  lda #(VRAM_BG1_MAP >> 10) << 2
+  lda #((VRAM_BG1_MAP >> 10) << 2) | 1   ; 64x32 map
   sta BG1SC
   lda #(VRAM_BG3_MAP >> 10) << 2
   sta BG3SC
@@ -357,7 +363,7 @@ tick_clock:
   sta BG2SC
   lda #(VRAM_BG1_TILES >> 12) | ((VRAM_BG2_TILES >> 12) << 4)
   sta BG12NBA
-  lda #(VRAM_FONT >> 12)
+  lda #(VRAM_FONT_BASE >> 12)
   sta BG34NBA
   lda #$A3                  ; OBJ 32x32 / 64x64, name base $6000
   sta OBSEL
@@ -439,21 +445,6 @@ tick_clock:
   inx
   cpx #17
   bne @fx
-  ; title logo tiles -> BG2 tiles 128.. ; tile 206 = the blank tile the BG2 map rests on
-  a8
-  lda #^logo_tiles
-  sta dma_bank
-  a16
-  lda #VRAM_BG2_TILES + LOGO_TILE * 16
-  ldx #.loword(logo_tiles)
-  ldy #logo_tiles_end - logo_tiles
-  jsr dma_vram
-  lda #VRAM_BG2_TILES + BLANK2 * 16
-  sta VMADDL
-  ldx #16
-: stz VMDATAL
-  dex
-  bne :-
   lda #$80
   sta dma_bank
   lda #VRAM_FONT
@@ -1520,6 +1511,8 @@ nmi:
   sta fflash,x
   lda #FX_SPARK0
   jsr spawn_spark
+  lda #SMP_THUMP
+  jsr sfx_play
   lda #SMP_SNARE
   jsr sfx_play
   ldy att
@@ -1565,6 +1558,8 @@ nmi:
   sta fvx,x
   lda #SC_KO
   jsr set_script
+  lda #SMP_SLAM
+  jsr sfx_play
   lda #SMP_CRASH
   jsr sfx_play
 @done:
@@ -2062,6 +2057,8 @@ nmi:
   ; OAM entry X/2: x = fx>>4 - 32, y = FLOOR + fy>>4 - 64; hidden (x = 256) on odd flash frames
   lda fx,x
   asr4
+  sec
+  sbc cam
   sec
   sbc #32
   and #$01FF

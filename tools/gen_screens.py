@@ -53,20 +53,35 @@ def blob(label, fname, data, group=None):
     if group is not None: group.append(item)
     else: blobs.append([item])
 
+# the fight arenas are 384 px wide: the 256 px painting in the middle, its outer 64 px mirrored on each side
+WORLD_W, EXT = 384, 64
+def extend_painting(src, dst):
+    im = Image.open(src).convert("RGBA")
+    out = Image.new("RGBA", (WORLD_W, 224))
+    out.paste(im.crop((0, 0, EXT, 224)).transpose(Image.FLIP_LEFT_RIGHT), (0, 0))
+    out.paste(im, (EXT, 0))
+    out.paste(im.crop((256 - EXT, 0, 256, 224)).transpose(Image.FLIP_LEFT_RIGHT), (256 + EXT, 0))
+    out.save(dst)
 stage_info = {}
 for n in range(1, 10):
     src = os.path.join(root, "render", f"stage{n}.png")
     with tempfile.TemporaryDirectory() as tmp:
         if n == 9:
             order, mapw, pals, slots = quantize.run(n, src, tmp, SKY[n], slots=[3, 4, 5, 6, 7], floor_rule=False, label="select map")
+            tw = 32
         else:
-            order, mapw, pals, slots = quantize.run(n, src, tmp, SKY[n])
+            wide = os.path.join(tmp, f"wide{n}.png"); extend_painting(src, wide)
+            order, mapw, pals, slots = quantize.run(n, wide, tmp, SKY[n])
+            tw = WORLD_W // 8
     tiles = b"".join(order)
     palette = b"".join(struct.pack("<H", x) for p in pals for x in p)
-    assert len(tiles) <= 24576, f"stage {n}: {len(order)} tiles will not fit under the font at VRAM $3000"
+    assert len(order) <= 1024, f"stage {n}: {len(order)} tiles will not fit in BG1's 1024"
+    # a 64x32 BG tilemap is two 32x32 screens side by side: columns 0..31 (32 rows), then columns 32..63
+    rows = [mapw[r * tw:(r + 1) * tw] + [0] * (64 - tw) for r in range(28)] + [[0] * 64] * 4
+    mapbin = b"".join(struct.pack("<H", x) for row in rows for x in row[:32]) + b"".join(struct.pack("<H", x) for row in rows for x in row[32:])
+    blob(f"stage{n}_tiles", f"stage{n}.bin", tiles)
     grp = []; blobs.append(grp)
-    blob(f"stage{n}_tiles", f"stage{n}.bin", tiles, grp)
-    blob(f"stage{n}_map", f"stage{n}.map", b"".join(struct.pack("<H", x) for x in mapw), grp)
+    blob(f"stage{n}_map", f"stage{n}.map", mapbin, grp)
     blob(f"stage{n}_pal", f"stage{n}.pal", palette, grp)
     stage_info[n] = (pals, len(tiles))
     print(f"stage{n}: {len(order)} tiles")
@@ -273,11 +288,12 @@ print(f"data banks: {len(banks)} (banks {BANK0}..{BANK0 + len(banks) - 1})")
 
 # ---------------------------------------------------------------- tables (RODATA, bank 0)
 inc.append('.segment "RODATA"')
-inc.append("; STAGE_TAB: 8 bytes per stage 1..9 (entry 0 dummy): tiles addr, tiles bytes, map addr, pal addr; STAGE_BANK: bank")
+inc.append("; STAGE_TAB: 8 bytes per stage 1..9 (entry 0 dummy): tiles addr, tiles bytes, map addr, pal addr; banks: STAGE_TBANK (tiles), STAGE_MBANK (map + palettes)")
 inc.append("STAGE_TAB:\n  .word 0, 0, 0, 0")
 for n in range(1, 10):
     inc.append(f"  .word .loword(stage{n}_tiles), stage{n}_tiles_end - stage{n}_tiles, .loword(stage{n}_map), .loword(stage{n}_pal)")
-inc.append("STAGE_BANK:\n  .byte 0, " + ", ".join(f"^stage{n}_tiles" for n in range(1, 10)))
+inc.append("STAGE_TBANK:\n  .byte 0, " + ", ".join(f"^stage{n}_tiles" for n in range(1, 10)))
+inc.append("STAGE_MBANK:\n  .byte 0, " + ", ".join(f"^stage{n}_map" for n in range(1, 10)))
 
 def sky_tables(top, hor, ramp_lines):
     """backdrop gradient as two HDMA mode-2 tables for COLDATA ($2132): (red, green) and (blue, blue)"""
@@ -337,10 +353,11 @@ for n in range(1, 10):
         b.append(idx); b += struct.pack("<H", bgr555(base)); b += struct.pack("<H", bgr555([v - 70 for v in base]))
     else:
         b.append(0); b += bytes(4)
+    ox = EXT if n != 9 else 0            # world x of the painting's left edge
     crowd = a.get("crowd", []); b.append(len(crowd))
-    for (x, y) in crowd: b += bytes((x, y))
+    for (x, y) in crowd: b += struct.pack("<HB", x + ox, y)
     candles = a.get("candles", []); b.append(len(candles))
-    for (x, y) in candles: b += bytes((x, y))
+    for (x, y) in candles: b += struct.pack("<HB", x + ox, y)
     inc.append(f"AMB_{n}:\n  .byte " + ", ".join(str(v) for v in b))
 inc.append("AMB_TAB:\n  .word 0, " + ", ".join(f".loword(AMB_{n})" for n in range(1, 10)))
 

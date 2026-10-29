@@ -289,10 +289,12 @@
 :
   lda pj_x,x
   asr4
-  sta tmp0                  ; px
+  sta tmp0                  ; px (world)
+  sec
+  sbc cam
   clc
   adc #16
-  cmp #290                  ; px in -16..273
+  cmp #290                  ; on screen: px - cam in -16..273
   bcc :+
   brl @kill
 :
@@ -386,6 +388,8 @@
   beq @hide
   lda pj_x,x
   asr4
+  sec
+  sbc cam
   sec
   sbc #16
   and #$01FF
