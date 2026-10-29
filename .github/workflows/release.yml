@@ -1,0 +1,44 @@
+# Every push to main builds the ROM from source and publishes it as a semantically versioned GitHub release:
+# v<MAJOR>.<MINOR>.<run number>, MAJOR.MINOR from the VERSION file. The release carries the bare ROM and a zip
+# package (ROM, docs, box art, license).
+name: build and release
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: toolchain
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q cc65 cmake build-essential python3-venv zip
+          git clone --depth 1 https://github.com/vhelin/wla-dx.git /tmp/wla-dx
+          cmake -S /tmp/wla-dx -B /tmp/wla-dx/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/wla-dx/build -j
+          sudo cmake --install /tmp/wla-dx/build
+          python3 -m venv .venv && .venv/bin/pip install -q numpy pillow
+      - name: build
+        run: make
+      - name: version
+        id: v
+        run: |
+          TAG="v$(cat VERSION).${{ github.run_number }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          sed -i "s/^VERSION := .*/VERSION := ${TAG#v}/" Makefile
+          make package
+          cp build/baby-beatdown-${TAG#v}.zip baby-beatdown-$TAG.zip
+          cp dist/baby-beatdown.sfc baby-beatdown-$TAG.sfc
+      - name: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.v.outputs.tag }}"
+          git tag "$TAG" && git push origin "$TAG"
+          gh release create "$TAG" "baby-beatdown-$TAG.sfc" "baby-beatdown-$TAG.zip" \
+            --title "Baby Beatdown $TAG" \
+            --notes "Built from ${{ github.sha }}: ${{ github.event.head_commit.message }}"

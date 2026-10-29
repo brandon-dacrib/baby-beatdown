@@ -6,7 +6,10 @@ A Street Fighter II style fighting game for the Super Nintendo, written from scr
 its own SPC700 sound driver. Eight babies, each an animal (plus one human and one bug) with its own martial
 art, home stage somewhere in America, song, projectile, super, catchphrases and a grudge.
 
-**Play it**: `dist/baby-beatdown.sfc` (2 MB LoROM) in any accurate SNES emulator or on a flash cart.
+**Play it**: grab the latest ROM or zip package from the
+[releases page](https://github.com/brandon-dacrib/baby-beatdown/releases) (every push to `main` builds and
+publishes a semantically versioned release), or use `dist/baby-beatdown.sfc` (2 MB LoROM) straight from the
+repository, in any accurate SNES emulator or on a flash cart.
 
 | | |
 |---|---|
