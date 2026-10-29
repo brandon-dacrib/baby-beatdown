@@ -2017,9 +2017,13 @@ GRID_Y = 112
   clc
   adc tmp0
   and #3
-  bne :+
+  bne @steady
   lda #$40                  ; the flame flickers by mirroring
-: ora #$24
+  bra @attr
+@steady:
+  lda #0
+@attr:
+  ora #$24
   sta oa_attr
   lda #FX_CANDLE0
   jsr fx_tile
