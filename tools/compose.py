@@ -129,8 +129,9 @@ class Song:
                     for k in (1, 2):
                         for n in tones[:voices]: self.hit(t0 + k * BEAT, sound, n, vol, 20)
             t += bars * BAR
-    def save(self, name):
-        self.length = ((self.length + BAR - 1) // BAR) * BAR          # loop on a bar line
+    def save(self, name, bars=8):
+        self.length = bars * BAR                                       # loop exactly on the bar line
+        self.notes = [n for n in self.notes if n["at"] < self.length]
         # how many music voices the player needs at once (the game has six; drums share by sample)
         ev = sorted((n["at"], 1, n["len"]) for n in self.notes)
         free = [0] * 6; worst = 0
@@ -167,7 +168,7 @@ s.save("backyard")
 # ------------------------------------------------------------ 3 New York rooftop: night hip hop with jazz chords
 s = Song(92, swing=50)
 prog = [("Am7", 2), ("Dm7", 2), ("Fmaj7", 2), ("E7", 2)]
-s.drums("hiphop", 8); s.bass("hiphop", prog); s.chords("pad", prog, "piano", 50, voices=3)
+s.drums("hiphop", 8); s.bass("hiphop", prog); s.chords("pad", prog, "piano", 50, voices=2)
 s.line("E5:1 -:0.5 G5:0.5 A5:1 -:0.5 G5:0.5 E5:1 D5:0.5 C5:0.5 D5:1 -:1 A4:0.5 C5:0.5 D5:1 F5:0.5 E5:0.5 D5:1 C5:1 -:1 "
        "A4:0.5 C5:0.5 E5:1 -:0.5 G5:0.5 A5:1 G5:0.5 E5:0.5 C5:1 -:1 B4:0.5 D5:0.5 E5:1 G#5:0.5 B5:0.5 E5:1 D5:0.5 B4:0.5 E5:2 -:1", "vibes", 68)
 s.save("rooftop")
@@ -215,4 +216,4 @@ prog = [("C", 2), ("Am", 2), ("F", 2), ("G", 2), ("C", 2), ("Am", 2), ("F", 1), 
 s.drums("lullaby", 16); s.bass("lullaby", prog); s.chords("arp", prog, "bell", 38)
 s.line("E5:1 G5:1 C6:2 B5:1 A5:1 G5:2 A5:1 C6:1 F5:2 G5:1 F5:1 E5:2 E5:1 G5:1 C6:2 B5:1 A5:1 G5:2 A5:1 G5:1 F5:1 E5:1 D5:2 C5:2 "
        "-:8 -:8 -:8 -:8", "vibes", 55)
-s.save("nursery")
+s.save("nursery", 16)
