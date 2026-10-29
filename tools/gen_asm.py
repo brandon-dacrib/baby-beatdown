@@ -149,9 +149,9 @@ w("SUP_NAME:")
 for sp in SUP: w("  .byte " + ", ".join(str(GL.get(ch, 0)) for ch in (sp["name"] + " " * 16)[:16]))
 tb("SUP_NAMECOL", [(32 - len(sp["name"])) // 2 for sp in SUP])
 # SF2-style chains (the original toy's chains): pressing punch / kick again after a landed hit starts the next move
-CHAINS = [("jab cross upper", "kick cross upper"), ("jab cross highkick", "kick sweep upper"), ("jab jab jab cross", "highkick sweep"),
-          ("cross upper", "kick kick"), ("jab jab highkick", "kick highkick highkick"), ("cross cross upper", "kick sweep"),
-          ("jab upper", "kick kick kick highkick"), ("jab jab jab jab jab", "sweep sweep kick")]
+CHAINS = [("jab cross upper", "kick cross upper"), ("backfist elbow highkick", "cartwheel crescent roundhouse"), ("jab jab jab cross", "highkick sweep"),
+          ("cross upper", "kick kick"), ("jab straight upper", "knee knee roundhouse"), ("cross cross upper", "kick sweep"),
+          ("jab upper", "kick kick kick highkick"), ("jab backfist", "sidekick roundhouse axekick")]
 for key, idx in (("P", 0), ("K", 1)):
     vals = []
     for ch in CHAINS:

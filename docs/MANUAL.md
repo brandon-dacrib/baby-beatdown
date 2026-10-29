@@ -39,13 +39,13 @@ emulator (developed and tested on Mesen2) and on real hardware through a flash c
 | baby | style | punches | kicks | forward + P / K | low P / K | super |
 |---|---|---|---|---|---|---|
 | Brandon | boxing / JKD | jab, cross, hook, straight, uppercut | side kick, kick, front kick | chain punch / side kick | uppercut / sweep | DIAPER DUMP (projectile) |
-| Arlo | capoeira | back fist, elbow, palm thrust | crescent, meia lua, front, high kick | elbow / meia lua kick | back fist / sweep | BOTTLE BASH (rush) |
+| Arlo | capoeira | back fist, elbow, palm thrust | meia lua (handstand kick), crescent, roundhouse, axe, high kick | elbow / meia lua | back fist / sweep | BOTTLE BASH (rush) |
 | Dawn | kung fu | chain punch, tiger claw, back fist, straight | crescent, front, side kick | tiger claw / flying kick | tiger claw / sweep | RATTLE RAMPAGE (3-hit rush) |
 | Chris | sumo | palm thrust, haymaker, belly bump | stomp, knee, front kick | belly bump / stomp | palm / stomp | BINKY BLAST (projectile) |
-| Isaac | taekwondo | jab, back fist | axe, side, crescent, front, roundhouse | back fist / flying kick | jab / sweep | BUBBLE BURP (wobbling projectile) |
+| Isaac | MMA | jab, straight, elbow, uppercut | knee, flying knee, roundhouse, kick | straight / flying knee | uppercut / sweep | BUBBLE BURP (wobbling projectile) |
 | Teddy | wrestling | haymaker, lariat, headbutt | knee, stomp, kick | lariat / knee | haymaker / stomp | TANTRUM TOSS (ground projectile) |
 | Pip | muay thai | elbow, jab, uppercut | knee, flying knee, front, roundhouse | elbow / flying knee | uppercut / sweep | TEETHING CHOMP (hopping rush) |
-| Blue | karate | straight, back fist, tiger claw | front, side, roundhouse | straight / side kick | straight / sweep | SPIT-UP SPRAY (short projectile) |
+| Blue | taekwondo | jab, back fist | axe, side, crescent, front, roundhouse | back fist / flying kick | jab / sweep | SPIT-UP SPRAY (short projectile) |
 
 Crouch shots (down + punch): Brandon's binky, Dawn's yarn ball, Isaac's bubble, Blue's spit glob.
 
@@ -54,13 +54,13 @@ Combo chains (press punch again, or kick again, after a hit lands):
 | baby | punch chain | kick chain |
 |---|---|---|
 | Brandon | jab, cross, uppercut | kick, cross, uppercut |
-| Arlo | jab, cross, high kick | kick, sweep, uppercut |
+| Arlo | back fist, elbow, high kick | meia lua, crescent, roundhouse |
 | Dawn | jab, jab, jab, cross | high kick, sweep |
 | Chris | cross, uppercut | kick, kick |
-| Isaac | jab, jab, high kick | kick, high kick, high kick |
+| Isaac | jab, straight, uppercut | knee, knee, roundhouse |
 | Teddy | cross, cross, uppercut | kick, sweep |
 | Pip | jab, uppercut | kick, kick, kick, high kick |
-| Blue | jab, jab, jab, jab, jab | sweep, sweep, kick |
+| Blue | jab, back fist | side kick, roundhouse, axe kick |
 
 ## Modes
 

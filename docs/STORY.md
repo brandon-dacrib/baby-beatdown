@@ -24,8 +24,8 @@ Wins with: "COOKIE TIME! ALL MINE." Loses with: "WAAAH! NO COOKIE!"
 
 ### Arlo, Harlem, New York City
 Style: capoeira. A terrier pup from Harlem who learned to fight by chasing his own tail across the roof
-of his building, which he considers his and his alone. Spins, cartwheels and crescent kicks, and never
-stops wagging. Someone touched his squeaky
+of his building, which he considers his and his alone. Everything spins: meia lua handstand kicks,
+crescent and roundhouse kicks, spinning back fists, and he never stops wagging. Someone touched his squeaky
 toy. This is about the squeaky toy.
 Motivation: guarding his squeaky.
 Super: BOTTLE BASH, a full-speed charge with the bottle out front.
@@ -72,8 +72,8 @@ Super: TEETHING CHOMP, a hopping charge with the new teeth out front.
 Wins with: "HOP TO IT - LOSER!" Loses with: "MY EARS ARE DROOPING."
 
 ### Blue, Florida
-Style: karate. A blue bug from the Everglades, antennae and all, with the most precise straight punch in the
-bracket. Blue did not enter to win. Blue entered to annoy, and winning is simply the most annoying thing
+Style: taekwondo. A blue bug from the Everglades, antennae and all, and the best kicker in the bracket: axe
+kicks, side kicks, crescents and roundhouses from legs nobody saw coming. Blue did not enter to win. Blue entered to annoy, and winning is simply the most annoying thing
 Blue can do.
 Motivation: here to bug everyone.
 Super: SPIT-UP SPRAY, a short-range green glob.

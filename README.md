@@ -36,10 +36,10 @@ repository, in any accurate SNES emulator or on a flash cart.
 | Arlo | terrier puppy | capoeira | his own rooftop in Harlem, New York City |
 | Dawn | kitten | kung fu | the riverfront under the Arch, Saint Louis |
 | Chris | piglet | sumo | an apple farm under Mount Rainier, Washington State |
-| Isaac | duckling, raised in Central Park | taekwondo | 125th Street, Harlem |
+| Isaac | duckling, raised in Central Park | MMA | 125th Street, Harlem |
 | Teddy | bear cub | wrestling | a cave in Kentucky |
 | Pip | bunny | muay thai | a garden in Georgia |
-| Blue | blue bug | karate | the Everglades, Florida |
+| Blue | blue bug | taekwondo | the Everglades, Florida |
 
 Read [the story](docs/STORY.md) for who they are and why they are fighting, and [the manual](docs/MANUAL.md)
 for controls, move lists and combo chains.
