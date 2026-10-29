@@ -525,7 +525,18 @@ GRID_Y = 112
   stz mtimer
   lda #1
   sta sel_cur
-  stz sel_cpu
+  lda demo
+  beq :+
+  jsr rnd8
+  and #7
+  inc a
+  sta sel_cur
+  jsr rnd8
+  and #3
+  clc
+  adc #3
+  sta demo_moves
+: stz sel_cpu
   lda two_p
   beq :+
   lda #2
@@ -806,8 +817,18 @@ GRID_Y = 112
   jsr clear_inputs
   lda mtimer
   cmp #12
-  bcc @draw                 ; input lockout: the press that opened this screen must not pick
-  lda two_p
+  bcs :+
+  brl @draw
+:
+  lda demo
+  beq :+
+  jsr select_demo           ; A = 1: pick now, 2: waiting, 0: nothing
+  cmp #1
+  beq @demo_pick
+  cmp #2
+  beq @waiting
+  brl @draw
+: lda two_p
   bne @two
   lda sel_cpu
   bne @waiting
@@ -827,6 +848,14 @@ GRID_Y = 112
   cmp #110
   bcc @draw
   jmp start_match
+@demo_pick:
+  jsr rnd8
+  and #7
+  inc a
+  sta sel_cpu
+  stz sel_t
+  jsr sfx_select_g
+  bra @draw
 @two:
   lda sel_ok1
   bne :+
@@ -853,13 +882,22 @@ GRID_Y = 112
   bcc @draw
   jmp start_match
 @draw:
+  lda demo
+  beq :+
+  lda frame_ctr
+  and #32
+  bne :+
+  jsr clear_bg3
+  TEXT s_demo, 7, 26, PAL5
+  bra @drawn
+: jsr clear_bg3
+@drawn:
   lda sel_cpu
   ldy two_p
   beq :+
   lda sel_ok1
 : sta p1_done
   jsr show_face
-  jsr clear_bg3
   TEXT s_pselect, 9, 1, PAL7
   lda sel_cur
   jsr cell_pos
@@ -1032,6 +1070,72 @@ GRID_Y = 112
   sta sel_cur
   rts
 .endproc
+; attract-mode select: any button leaves, the cursor wanders demo_moves times, then picks. A = 0/1/2 (see caller)
+.proc select_demo
+  jsr any_button
+  bne @leave
+  lda pad2_new
+  and #BTN_ANY
+  beq :+
+@leave:
+  jsr sfx_select_c
+  pla
+  pla                       ; drop the caller's return: straight to the title
+  jmp go_title
+: lda sel_cpu
+  beq :+
+  lda #2                    ; picked: let the countdown run
+  rts
+: lda mtimer
+  sta tmp0
+  lda #22
+  sta tmp1
+  jsr div_small
+  lda tmp2
+  beq :+
+  lda #0
+  rts
+: lda demo_moves
+  beq @maybe_pick
+  dec demo_moves
+  lda sel_cur
+  sta cur_tmp
+  jsr rnd8
+  cmp #153
+  bcs @row
+  jsr rnd8
+  and #2
+  dec a                     ; -1 / +1
+  jsr move_cursor_x
+  bra @moved
+@row:
+  lda cur_tmp
+  cmp #5
+  bcs @up
+  clc
+  adc #4
+  bra @set
+@up:
+  sec
+  sbc #4
+@set:
+  sta cur_tmp
+  jsr sfx_select_e
+@moved:
+  lda cur_tmp
+  sta sel_cur
+  lda #0
+  rts
+@maybe_pick:
+  lda mtimer
+  cmp #40
+  bcc :+
+  lda #1
+  rts
+: lda #0
+  rts
+.endproc
+
 .proc p2_moves
   lda sel_cpu
   sta cur_tmp
@@ -1205,12 +1309,12 @@ GRID_Y = 112
   jmp begin_fight
 .endproc
 
+; attract mode: the select screen picks by itself, then a CPU-vs-CPU match, any button returns to the title
 .proc start_demo
-  jsr fade_out
-  jsr pick_pair
   lda #1
   sta demo
-  jmp begin_fight
+  stz two_p
+  jmp go_select
 .endproc
 
 ; fchar set: load the CPU's stage, first round

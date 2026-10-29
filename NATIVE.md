@@ -33,7 +33,8 @@ art and tuning data.
 
 - **Title**: logo on BG2 (priority above the stage), a random stage with its song and a random pair of babies
   posing (jab / kick on a 4 s beat), "PUSH START" blinking. The stage and pair re-roll every 7 s; after 15 s
-  without input a CPU-vs-CPU demo fight runs ("DEMO - PUSH START"), any button returns to the title.
+  without input the attract mode runs: the select screen picks by itself (wandering cursor, random
+  opponent), then a CPU-vs-CPU match ("DEMO - PUSH START"); any button returns to the title.
 - **Player select**: the painted world map (stage 9) on BG1, the 4x2 icon grid as 32x32 sprites (one palette
   each), the highlighted baby's 96x96 portrait on BG2 (two half uploads through the NMI queue), yellow "1P"
   bracket and lit stage label, red "CPU" bracket once the opponent is drawn, then the match starts on the CPU

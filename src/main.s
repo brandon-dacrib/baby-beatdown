@@ -211,6 +211,7 @@ sel_ok2:    .res 2
 cur_tmp:    .res 2
 cur_pad:    .res 2
 p1_done:    .res 2
+demo_moves: .res 2
 
 ; ------------------------------------------------------------------ ROM data
 .segment "RODATA"
