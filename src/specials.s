@@ -1,3 +1,4 @@
+; Baby Beatdown is free software, released under the GNU GPL v3 or later (see LICENSE).
 ; specials.s: meter supers (A with a full meter: a projectile or a rush per character), crouch-punch shots for
 ; four babies, the two projectile slots, and the super-name callout. Included from main.s (CODE segment).
 ; Projectile slot X (0/2) belongs to fighter X; positions are 1/16 px like the fighters, pj_y is the screen y

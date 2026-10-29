@@ -48,6 +48,11 @@ Homebrew `cc65` and `wla-dx`, Python 3 with numpy and pillow in `.venv`, then `m
 harness. Everything on screen is generated from code and the small data files in `data/` and `render/`:
 no Lua, no external art tools.
 
+## License
+
+Baby Beatdown is free software: code, art, music and data are released under the GNU General Public License
+version 3 or later. See [LICENSE](LICENSE).
+
 ## Working rules
 
 - `make` must produce a ROM that boots; verify changes with `tools/emu_test.py` before committing.

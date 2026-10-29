@@ -1,3 +1,4 @@
+; Baby Beatdown is free software, released under the GNU GPL v3 or later (see LICENSE).
 ; BABY BEATDOWN - native SNES build (65816, ca65). LoROM/FastROM, Mode 1.
 ; Engine (SF2 Turbo formats: 4-byte keyframes, box sets, centre/half-extent boxes).
 ; Fighters are two 64x64 OBJs whose tiles are streamed from ROM by DMA in NMI when the pose changes (2 KB each).

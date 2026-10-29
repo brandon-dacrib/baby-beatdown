@@ -1,3 +1,4 @@
+; Baby Beatdown is free software, released under the GNU GPL v3 or later (see LICENSE).
 ; screens.s: title, player select, fight flow (rounds, callouts, match end, attract demo), stage loading,
 ; HDMA sky gradient + per-scanline scroll bands, ambient sprites (birds, butterflies, crowd, candles),
 ; palette cycling, shadows, hit sparks, text. Included from main.s inside the CODE segment.

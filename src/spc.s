@@ -1,3 +1,4 @@
+; Baby Beatdown is free software, released under the GNU GPL v3 or later (see LICENSE).
 ; spc.s: SPC700 command server for Baby Beatdown (wla-spc700). Lives at $0200..$02FF in SPC RAM.
 ; The main CPU runs the sequencer; this loop only turns commands into DSP register writes.
 ; Protocol: CPU writes p1,p2,p3 to ports 1..3, then the command byte to port 0 (bits 7-6 op, bits 5-3 a

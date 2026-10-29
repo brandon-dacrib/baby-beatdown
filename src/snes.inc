@@ -1,3 +1,4 @@
+; Baby Beatdown is free software, released under the GNU GPL v3 or later (see LICENSE).
 ; snes.inc: PPU/CPU register names and width macros for ca65 (65816)
 INIDISP  = $2100
 OBSEL    = $2101
