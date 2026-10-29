@@ -53,10 +53,10 @@ S("hit",    [(1,0x81,c(7),BS_HIT)])
 S("gut",    [(1,0x81,c(67),BS_HIT)])
 S("headsnap",[(1,0x81,c(68),BS_HIT)])
 S("stagger",[(1,0x81,c(69),BS_HIT)])
-S("ko",     [(10,0,c(7),BS_KO),(1,0x81,c(9),BS_KO)])
+S("ko",     [(10,0,c(7),BS_KO),(1,0x80,c(9),BS_KO)])     # 0x80 = hold the last frame (0x81 would loop)
 S("super",  [(1,0x81,c(10),BS_STAND)])
 S("win",    [(14,0,c(70),BS_STAND),(14,0x81,c(75),BS_STAND)])
-S("fall",   [(8,0,c(7),BS_KO),(1,0x81,c(9),BS_KO)])      # swept off the feet
+S("fall",   [(8,0,c(7),BS_KO),(1,0x80,c(9),BS_KO)])      # swept off the feet; the last frame holds
 S("getup",  [(14,0x80,c(5),BS_CROUCH)])
 S("super_proj", [(18,0,c(10),BS_STAND),(18,0x80,c(3),BS_STAND)])
 S("rush_p", [(12,0,c(10),BS_STAND),(24,0x80,c(3),BS_STAND)])

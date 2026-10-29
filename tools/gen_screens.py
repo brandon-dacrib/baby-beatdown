@@ -81,7 +81,12 @@ for n in range(1, 10):
     palette = b"".join(struct.pack("<H", x) for p in pals for x in p)
     assert len(order) <= 1024, f"stage {n}: {len(order)} tiles will not fit in BG1's 1024"
     # a 64x32 BG tilemap is two 32x32 screens side by side: columns 0..31 (32 rows), then columns 32..63
-    rows = [mapw[r * tw:(r + 1) * tw] + [0] * (64 - tw) for r in range(28)] + [[0] * 64] * 4
+    def wrap_row(r):
+        row = mapw[r * tw:(r + 1) * tw]
+        if tw != 48: return row + [0] * (64 - tw)
+        # 48..55: the right edge continued (mirrored), 56..63: the left edge continued (mirrored, so column 63 meets column 0)
+        return row + [row[47 - i] ^ 0x4000 for i in range(8)] + [row[7 - i] ^ 0x4000 for i in range(8)]
+    rows = [wrap_row(r) for r in range(28)] + [[0] * 64] * 4
     mapbin = b"".join(struct.pack("<H", x) for row in rows for x in row[:32]) + b"".join(struct.pack("<H", x) for row in rows for x in row[32:])
     blob(f"stage{n}_tiles", f"stage{n}.bin", tiles)
     grp = []; blobs.append(grp)
@@ -220,67 +225,107 @@ def spark(frame):
 def block_spark():
     idx = paint((ell(16, 16, 8, 8), LBLUE), (ell(16, 16, 5, 5), WHITE), (box(15, 4, 16, 27), BLUE), (box(4, 15, 27, 16), BLUE))
     return outline(idx)
-# the projectiles, drawn at the full 32x32 with outlines, highlights and a motion trail (they fly to the right;
-# the game mirrors them when thrown left). One per baby's super, then the four crouch shots.
-def trail(idx, y, x0, x1, col):
-    for x in range(x0, x1):
-        if 0 <= x < 32 and idx[y, x] == 0 and (x & 1) == 0: idx[y, x] = col
+# the projectiles, drawn at the full 32x32 with outlines, two or three tones, a highlight and motion streaks (they fly
+# to the right; the game mirrors them when thrown left, and tumbles or flaps them with the OAM flip bits: FX_ANIM).
+# One per baby's super, then the four crouch shots.
+def streak(idx, rows, x0, x1, col=LGREY):
+    for y in rows:
+        for x in range(x0, x1):
+            if 0 <= x < 32 and 0 <= y < 32 and idx[y, x] == 0 and ((x + y) & 1) == 0: idx[y, x] = col
 def shine(idx, cx, cy, r):
     idx[ell(cx, cy, r, r * 0.7)] = WHITE
-def proj_diaper():      # Brandon: DIAPER DUMP, a flying diaper, tabs flapping
-    body = ell(18, 17, 10, 8) | box(10, 9, 26, 17)
-    idx = paint((body, WHITE), (box(10, 9, 26, 11), LBLUE), (box(9, 11, 13, 15) | box(23, 11, 27, 15), LBLUE), (ell(18, 20, 4, 2), LGREY))
-    idx = outline(idx); trail(idx, 14, 0, 8, LGREY); trail(idx, 18, 0, 7, LGREY)
+def glyph_B(idx, x0, y0, col):            # a bold "B", 10 x 14
+    rows = ["1111.", "1...1", "1...1", "1111.", "1...1", "1...1", "1111."]
+    for gy, row in enumerate(rows):
+        for gx, ch in enumerate(row):
+            if ch == "1": idx[y0 + gy * 2:y0 + gy * 2 + 2, x0 + gx * 2:x0 + gx * 2 + 2] = col
+def proj_diaper():      # Brandon: DIAPER DUMP. A folded, loaded diaper: waistband, tabs, leg elastic, a stain and stink lines
+    body = (yy >= 9) & (yy <= 26) & (np.abs(xx + 0.5 - 16) <= 10.5 - np.maximum(0, yy - 11) * 0.42)
+    waist = body & (yy <= 11)
+    idx = paint((body, WHITE), (waist, LBLUE), (body & (yy > 11) & (np.abs(xx + 0.5 - 16) >= 10.5 - np.maximum(0, yy - 11) * 0.42 - 1.2), LGREY),
+                (box(3, 10, 6, 14) | box(25, 10, 28, 14), BLUE), (ell(16, 23, 4.5, 2.2) & body, BROWN), (ell(15, 22, 2, 1) & body, ORANGE))
+    idx = outline(idx)
+    for k, (sx, sy) in enumerate(((9, 7), (16, 5), (23, 7))):          # stink curls
+        for t in range(5):
+            x = sx + (1 if (t + k) % 2 else 0); y = sy - t
+            if 0 <= y < 32 and idx[y, x] == 0: idx[y, x] = LGREEN
+    streak(idx, (14, 19), 0, 5)
     return idx
-def proj_bottle():      # Arlo: a milk bottle (rush super; the cell shows up only if it ever flies)
-    body = box(10, 10, 24, 26) | ell(17, 26, 7, 3)
-    idx = paint((body, WHITE), (box(10, 10, 24, 18), LBLUE), (box(14, 5, 20, 10), ORANGE), (box(15, 3, 19, 5), ORANGE)); shine(idx, 13, 20, 1.5)
+def proj_bottle():      # Arlo: a milk bottle flying sideways (rush super; the cell shows up only if it ever flies)
+    body = box(6, 10, 22, 22) | ell(6, 16, 3.5, 6.5)
+    idx = paint((body, WHITE), (body & (yy >= 16), LBLUE), (box(23, 8, 25, 24), ORANGE), (ell(28.5, 16, 3, 3.5), ORANGE), (ell(27, 15, 1.2, 1), YELLOW))
+    for x in (9, 13, 17): idx[11:13, x] = DGREY
+    shine(idx, 10, 13, 1.4)
+    idx = outline(idx); streak(idx, (12, 20), 0, 4)
+    return idx
+def proj_rattle():      # Dawn: a rattle, pink ball on a wooden handle, shaking
+    head = ell(23, 16, 7.5, 7.5)
+    idx = paint((box(3, 14, 18, 18), BROWN), (box(3, 15, 18, 16), ORANGE), (ell(5, 16, 3.5, 3.5), PURPLE), (head, PINK), (head & (yy > 19), PURPLE),
+                (head & (((xx + 1) % 6 < 2) & ((yy + 2) % 6 < 2)), WHITE))
+    shine(idx, 20, 12, 2)
+    idx = outline(idx)
+    for y in (6, 26):
+        for x in range(19, 29, 2): idx[y, x] = LGREY
+    return idx
+def proj_binky():       # Chris: BINKY BLAST, a pacifier in profile: blue ring, pink shield, grey teat pointing forward
+    ring = ell(7, 16, 5.5, 5.5) & ~ell(7, 16, 2.8, 2.8); shield = box(12, 5, 19, 26) & ~(box(12, 5, 13, 6) | box(12, 25, 13, 26) | box(18, 5, 19, 6) | box(18, 25, 19, 26))
+    teat = ell(24, 16, 5.5, 4) | box(19, 13, 24, 19)
+    idx = paint((teat, LGREY), (ell(26, 15, 2, 1.2), WHITE), (shield, PINK), (box(14, 9, 17, 10) | box(14, 21, 17, 22), DGREY), (ring, BLUE), (ring & (yy < 13) & (xx < 7), LBLUE))
+    shine(idx, 14, 8, 1.3)
+    idx = outline(idx); streak(idx, (11, 21), 0, 2)
+    return idx
+def proj_bubble():      # Isaac: BUBBLE BURP, a big soap bubble with a rainbow rim and a wet highlight
+    b = ell(16, 16, 13, 13); rim = b & ~ell(16, 16, 10.5, 10.5)
+    ang = np.arctan2(yy + 0.5 - 16, xx + 0.5 - 16)
+    idx = paint((b, LBLUE), (rim, BLUE), (rim & (ang > -2.4) & (ang < -0.8), PURPLE), (rim & (ang > -0.8) & (ang < 0.8), PINK), (rim & (ang > 1.6) & (ang < 2.8), LGREEN),
+                (b & ~rim & (((xx * 2 + yy) % 11) == 0) & ((yy % 3) == 0), WHITE))
+    idx[ell(11, 10, 4, 2.6)] = WHITE; idx[ell(22, 22, 1.8, 1.4)] = WHITE
     return outline(idx)
-def proj_rattle():      # Dawn: a rattle
-    idx = paint((box(6, 15, 20, 18), BROWN), (ell(24, 16, 7, 7), PINK), (ell(6, 16, 3, 3), BROWN), (ell(26, 13, 2, 2), WHITE), (ell(24, 16, 7, 7) & (yy > 18), PURPLE))
-    idx = outline(idx); trail(idx, 16, 0, 4, PINK)
+def proj_block():       # Teddy: TANTRUM TOSS, a wooden letter block in three-quarter view
+    front = box(5, 10, 22, 27)
+    top = (yy >= 5) & (yy <= 9) & (xx >= 5 + (10 - yy)) & (xx <= 22 + (10 - yy))
+    side = (xx >= 23) & (xx <= 27) & (yy >= 10 - (xx - 22)) & (yy <= 27 - (xx - 22))
+    idx = paint((front, YELLOW), (top, WHITE), (side, ORANGE), (box(6, 11, 21, 26) & ~box(8, 13, 19, 24), ORANGE))
+    glyph_B(idx, 9, 12, RED)
+    idx = outline(idx)
+    idx[10, 5:23] = DARK; idx[10:28, 23] = DARK
+    for y in range(10, 28): idx[y, 23] = DARK
+    streak(idx, (13, 24), 0, 4, YELLOW)
     return idx
-def proj_binky():       # Chris: BINKY BLAST, a big pacifier
-    shield = ell(14, 16, 9, 8); ring = ell(26, 16, 5, 5) & ~ell(26, 16, 2.5, 2.5); nip = ell(7, 16, 4, 3)
-    idx = paint((shield, PINK), (shield & ((xx + yy) % 6 < 2), WHITE), (ring, BLUE), (nip, LGREY), (ell(14, 16, 3, 3), BLUE)); shine(idx, 10, 12, 1.6)
-    idx = outline(idx); trail(idx, 13, 0, 3, PINK); trail(idx, 19, 0, 3, PINK)
-    return idx
-def proj_bubble():      # Isaac: BUBBLE BURP, a big soap bubble
-    b = ell(16, 16, 12, 12)
-    idx = paint((b, LBLUE), (b & ~ell(16, 16, 9, 9), BLUE), (ell(16, 16, 12, 12) & ((xx * 2 + yy) % 9 == 0), WHITE))
-    idx[ell(11, 11, 3, 2)] = WHITE; idx[ell(21, 21, 1.5, 1.2)] = WHITE
+def proj_carrot():      # Pip: a carrot, point first
+    body = (xx >= 3) & (xx <= 24) & (np.abs(yy + 0.5 - 17) <= 1 + (xx - 3) * 0.3)
+    idx = paint((body, ORANGE), (body & (yy < 15), YELLOW), (body & (yy > 18) & ((xx % 5) == 2), BROWN))
+    for k, (dx, dy) in enumerate(((0, -6), (3, -1), (2, 4))):
+        for t in range(7):
+            x = 24 + t; y = 17 + dy * t // 6 + (dy > 0)
+            if 0 <= x < 32 and 0 <= y < 32: idx[y, x] = GREEN if t % 2 else LGREEN
     return outline(idx)
-def proj_block():       # Teddy: TANTRUM TOSS, a thrown wooden letter block
-    b = box(6, 6, 25, 25)
-    idx = paint((b, YELLOW), (box(6, 6, 25, 8) | box(6, 6, 8, 25), ORANGE), (box(23, 6, 25, 25) | box(6, 23, 25, 25), BROWN),
-                (box(12, 11, 14, 20) | box(14, 11, 19, 13) | box(14, 15, 18, 17) | box(14, 18, 19, 20), RED))
-    idx = outline(idx); trail(idx, 10, 0, 5, YELLOW); trail(idx, 20, 0, 5, YELLOW)
+def proj_spit():        # Blue: SPIT-UP SPRAY, a green glob with a sheen, drips and droplets behind it
+    g = ell(19, 16, 10, 7.5) | ell(12, 18, 5, 4) | ell(21, 24, 2.5, 3) | ell(14, 23, 1.5, 2.5)
+    idx = paint((g, GREEN), (g & ell(17, 13, 6, 3.2), LGREEN), (ell(6, 11, 2.5, 2), GREEN), (ell(3, 19, 2, 1.6), GREEN), (ell(8, 25, 1.5, 1.5), GREEN),
+                (ell(15, 12, 1.6, 1), WHITE), (ell(5.5, 10.5, 1, 0.8), LGREEN))
+    idx = outline(idx); streak(idx, (15, 17), 0, 3, LGREEN)
     return idx
-def proj_carrot():      # Pip: a carrot
-    body = (np.abs(yy - 17) <= (xx - 4) * 0.28 + 1) & (xx >= 4) & (xx <= 25)
-    idx = paint((body, ORANGE), (body & (yy > 18), BROWN if False else ORANGE), (box(25, 12, 31, 14) | box(25, 16, 30, 18) | box(25, 20, 29, 22), GREEN), (body & ((xx % 5) == 0), BROWN))
-    idx[body & (yy < 15)] = YELLOW
-    return outline(idx)
-def proj_spit():        # Blue: SPIT-UP SPRAY, a green glob with droplets
-    g = ell(18, 16, 9, 7) | ell(9, 17, 4, 3)
-    idx = paint((g, GREEN), (g & (yy < 14), LGREEN), (ell(27, 9, 2, 2) | ell(28, 23, 1.5, 1.5) | ell(4, 11, 1.5, 1.5), LGREEN))
-    idx = outline(idx); trail(idx, 16, 0, 3, LGREEN)
-    return idx
-def spc_binky():        # Brandon's crouch shot: a small pacifier
-    shield = ell(14, 16, 6, 5); ring = ell(22, 16, 3.5, 3.5) & ~ell(22, 16, 1.5, 1.5)
-    idx = paint((shield, BLUE), (ring, PINK), (ell(9, 16, 3, 2), LGREY)); shine(idx, 12, 13, 1.2)
+def spc_binky():        # Brandon's crouch shot: a small pacifier in profile
+    ring = ell(8, 16, 3.8, 3.8) & ~ell(8, 16, 1.6, 1.6); shield = box(12, 10, 16, 22)
+    idx = paint((ell(20, 16, 4.5, 3), LGREY), (shield, BLUE), (box(13, 13, 15, 14), LBLUE), (ring, PINK))
+    shine(idx, 21, 15, 1)
     return outline(idx)
 def spc_yarn():         # Dawn: a ball of yarn with a loose end
-    b = ell(16, 16, 8, 8)
-    idx = paint((b, PINK), (b & (((xx + yy) % 5 == 0) | ((xx - yy) % 7 == 0)), PURPLE), (box(2, 22, 9, 23), PINK)); shine(idx, 12, 12, 1.5)
+    b = ell(17, 16, 8.5, 8.5)
+    strands = b & ((((xx - 17) * 0.6 + (yy - 16)) % 5 < 1.2) | (((xx - 17) - (yy - 16) * 0.5) % 6 < 1.2))
+    idx = paint((b, PINK), (strands, PURPLE), (box(2, 21, 9, 22), PINK), (box(2, 23, 9, 23), PURPLE))
+    shine(idx, 13, 12, 1.6)
     return outline(idx)
 def spc_bubble():       # Isaac: a small bubble
-    b = ell(16, 16, 7, 7)
-    idx = paint((b, LBLUE), (b & ~ell(16, 16, 5, 5), BLUE)); idx[ell(13, 13, 2, 1.5)] = WHITE
+    b = ell(16, 16, 8, 8); rim = b & ~ell(16, 16, 6, 6)
+    ang = np.arctan2(yy + 0.5 - 16, xx + 0.5 - 16)
+    idx = paint((b, LBLUE), (rim, BLUE), (rim & (ang > -2.4) & (ang < -0.8), PURPLE), (rim & (ang > 1.6) & (ang < 2.8), PINK))
+    idx[ell(13, 13, 2.4, 1.6)] = WHITE
     return outline(idx)
 def spc_glob():         # Blue: a spit glob
-    g = ell(17, 16, 7, 5) | ell(9, 17, 3, 2.5)
-    idx = paint((g, GREEN), (g & (yy < 15), LGREEN))
+    g = ell(18, 16, 7.5, 5.5) | ell(11, 17, 3.5, 2.8)
+    idx = paint((g, GREEN), (g & ell(17, 14, 4, 2), LGREEN), (ell(5, 14, 1.5, 1.2), GREEN), (ell(16.5, 13.5, 1, 0.8), WHITE))
     return outline(idx)
 PROJ_CELLS = [proj_diaper(), proj_bottle(), proj_rattle(), proj_binky(), proj_bubble(), proj_block(), proj_carrot(), proj_spit()]
 SPC_CELLS = [spc_binky(), spc_yarn(), spc_bubble(), spc_glob()]
@@ -477,6 +522,10 @@ inc.append("LOGO_PAL:\n  .word " + ", ".join(str(bgr555(c)) for c in LOGO_PAL))
 inc.append("CRIB_PAL:\n  .word " + ", ".join(str(bgr555(c)) for c in CRIB_PAL))
 inc.append("FX_PAL:\n  .word " + ", ".join(str(bgr555(c)) for c in FX_PAL))
 for i, (name, _) in enumerate(CELLS): inc.append(f"FX_{name} = {i}")
+# projectile animation per cell: 0 none, 1 tumble (the OAM flips cycle 0, H, HV, V), 2 flap (V toggles)
+FX_ANIM = {"PROJ0": 2, "PROJ1": 1, "PROJ2": 1, "PROJ3": 1, "PROJ4": 2, "PROJ5": 1, "SPC0": 1, "SPC1": 1, "SPC2": 2}
+inc.append("FX_ANIM:\n  .byte " + ", ".join(str(FX_ANIM.get(name, 0)) for name, _ in CELLS))
+inc.append("TUMBLE_FLIP:\n  .byte 0, $40, $C0, $80")
 inc.append("FACE_PALS:")
 for p in face_pals: inc.append("  .word " + ", ".join(str(w) for w in p))
 inc.append("FACE_TAB:\n  .word " + ", ".join(f".loword(face{i}_tiles)" for i in range(1, 9)))

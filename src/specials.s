@@ -395,8 +395,9 @@
   adc #6
   tay
   lda pj_on,x
-  beq @hide
-  lda pj_x,x
+  bne :+
+  brl @hide
+: lda pj_x,x
   asr4
   sec
   sbc cam
@@ -416,6 +417,30 @@
   bpl :+
   ora #$40
 : sta oa_attr
+  lda pj_cell,x             ; tumble / flap with the flip bits
+  tay
+  ldby FX_ANIM
+  beq @adone
+  cmp #2
+  beq @flap
+  lda pj_t,x
+  lsr a
+  lsr a
+  lsr a
+  and #3
+  tay
+  ldby TUMBLE_FLIP
+  eor oa_attr
+  sta oa_attr
+  bra @adone
+@flap:
+  lda pj_t,x
+  and #8
+  beq @adone
+  lda oa_attr
+  eor #$80
+  sta oa_attr
+@adone:
   stz oa_large
   txa
   lsr a
@@ -434,8 +459,9 @@
   inx
   inx
   cpx #4
-  bne @slot
-  rts
+  beq :+
+  brl @slot
+: rts
 .endproc
 
 ; CPU (X = fighter): throw the crouch shot from range now and then

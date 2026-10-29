@@ -54,6 +54,21 @@ def detail(g, kind, seed):
     # cute but angry: furrowed brows. Each eye is a 4x6 block of eye white (index 9); the flat brow above it becomes
     # a thick line that dips toward the nose (the babies face right, so the inner end is on the right)
     seen = np.zeros_like(a, bool)
+    eye_top = None
+    if kind == "puppy":
+        # Arlo: the tan "eyebrow spots" above the eyes read as a second pair of eyes, so they go; the furrowed brows are
+        # drawn in tan instead (a rottweiler's markings), which is the only way a brow shows on black fur
+        ys9 = np.nonzero((a == 9).any(1))[0]
+        if len(ys9):
+            eye_top = int(ys9[0])
+            out[(a == 12) & (yy < eye_top + 1)] = 3
+        # the toy's chest bib has a fringe of alternating tan / black columns that reads as a row of teeth under the muzzle:
+        # one-pixel-wide tan columns become fur, black gaps between tan become tan
+        tan = a == 12
+        lone = tan & (left != 12) & (right != 12)
+        gap = (a == 2) & (left == 12) & (right == 12)
+        out[lone] = 3; out[gap] = 12
+    brow_col = 12 if kind == "puppy" else 1
     for y in range(H):
         for x in range(W):
             if a[y, x] == 9 and not seen[y, x] and (x == 0 or a[y, x - 1] != 9) and (y == 0 or a[y - 1, x] != 9):
@@ -67,7 +82,7 @@ def detail(g, kind, seed):
                         by = y - 3 + (i + 1) * 3 // (w + 2)      # dips 2 rows across the eye
                         for t in range(2):
                             py, px = by + t, x + i
-                            if 0 <= py < H and 0 <= px < W and a[py, px] != 9: out[py, px] = 1
+                            if 0 <= py < H and 0 <= px < W and a[py, px] != 9: out[py, px] = brow_col
     # diaper seam: a dotted shade line one third down the diaper
     dia = a == 5
     if dia.any():
