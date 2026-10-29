@@ -978,7 +978,7 @@ GRID_Y = 112
   lda sel_ok1
 : sta p1_done
   jsr show_face
-  TEXT s_pselect, 9, 1, PAL7
+  TEXT s_pselect, 9, 0, PAL7
   lda sel_cur
   jsr cell_pos
   lda #PAL5

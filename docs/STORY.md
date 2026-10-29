@@ -6,8 +6,8 @@ Every afternoon, in every daycare across America, there is one nap mat by the wi
 gets the sun. It is next to the toy chest. Nobody has ever agreed on who gets it.
 
 This year the matter is being settled properly. The Great American Nap Time Tournament pits the eight
-toughest toddlers in the country against each other, stage by stage, from the Venice Beach boardwalk to a
-crib in Ohio. Best of three rounds. Whoever is still standing at the end gets the mat, the window, and the
+toughest toddlers in the country against each other, stage by stage, from the Venice Beach boardwalk to the
+rooftops of Harlem. Best of three rounds. Whoever is still standing at the end gets the mat, the window, and the
 last cookie in the jar.
 
 Diapers will be dumped. Binkies will be blasted. Somebody is going to cry.
@@ -22,33 +22,34 @@ Motivation: the last cookie or bust.
 Super: DIAPER DUMP, a thrown diaper that nobody wants to catch.
 Wins with: "COOKIE TIME! ALL MINE." Loses with: "WAAAH! NO COOKIE!"
 
-### Arlo, Ohio
-Style: capoeira. A terrier pup from a suburb outside Columbus who learned to fight by chasing his own tail
-in the backyard. Spins, cartwheels and crescent kicks, and never stops wagging. Someone touched his squeaky
+### Arlo, Harlem, New York City
+Style: capoeira. A terrier pup from Harlem who learned to fight by chasing his own tail across the roof
+of his building, which he considers his and his alone. Spins, cartwheels and crescent kicks, and never
+stops wagging. Someone touched his squeaky
 toy. This is about the squeaky toy.
 Motivation: guarding his squeaky.
 Super: BOTTLE BASH, a full-speed charge with the bottle out front.
 Wins with: "WHO IS A GOOD BOY! ME!" Loses with: "MY SQUEAKY... GONE."
 
-### Dawn, New York City
-Style: kung fu. A grey kitten from a Brooklyn rooftop with a pink bow and no patience. Tiger claws and
+### Dawn, Saint Louis, Missouri
+Style: kung fu. A grey kitten from the Saint Louis riverfront with a pink bow and no patience. Tiger claws and
 flying kicks, all delivered half asleep. She does not want the mat because it is soft. She wants it because
 everyone else does.
 Motivation: naps are for winners.
 Super: RATTLE RAMPAGE, a three-hit rattle flurry.
 Wins with: "PURRFECT. NAP TIME." Loses with: "HISS! REMATCH LATER."
 
-### Chris, Iowa
-Style: sumo. A piglet off an Iowa farm who is bigger than everyone and knows it. Belly bumps, palm thrusts,
+### Chris, Washington State
+Style: sumo. A piglet off an apple farm in the shadow of Mount Rainier who is bigger than everyone and knows it. Belly bumps, palm thrusts,
 stomps that shake the barn. He is not here for the mat. He is here because the tournament has a snack table
 and he intends to guard it.
 Motivation: nobody touches lunch.
 Super: BINKY BLAST, a pacifier the size of his head.
 Wins with: "MORE PUDDING PLEASE." Loses with: "OINK... STILL HUNGRY."
 
-### Isaac, Minnesota
-Style: taekwondo. A duckling from the lake country with a tuft of yellow hair and legs that reach places legs
-should not. Axe kicks, roundhouses, flying kicks. Everyone laughed when a duck signed up. Nobody is laughing
+### Isaac, New York City
+Style: taekwondo. A duckling hatched in Central Park and raised on its ponds, with a tuft of yellow hair and
+legs that reach places legs should not. Fights where the crowd is: 125th Street, Harlem. Axe kicks, roundhouses, flying kicks. Everyone laughed when a duck signed up. Nobody is laughing
 now.
 Motivation: prove ducks can kick.
 Super: BUBBLE BURP, a slow, wobbling, unstoppable bubble.
@@ -83,10 +84,10 @@ Wins with: "BZZT. TOO EASY." Loses with: "ANTENNAE DOWN..."
 | baby | where | the arena |
 |---|---|---|
 | Brandon | Los Angeles | the Venice Beach boardwalk at sunset: palms, the pier and its Ferris wheel, a lifeguard tower, the muscle-beach crowd |
-| Arlo | Ohio | a suburban backyard: the house, a tire-swing tree, kids at the picket fence, a grill |
-| Dawn | New York City | a Brooklyn rooftop at night: water tower, neon sign, the skyline, AC units |
-| Chris | Iowa | the farm: a red barn, silo, windmill, hay bales and a pig in the pen |
-| Isaac | Minnesota | the lake: willows, a raft of spectators, ducks and lily pads, a wooden pier |
+| Arlo | Harlem, NYC | his own rooftop at night: water tower, neon sign, the skyline, AC units |
+| Dawn | Saint Louis | the riverfront under the Gateway Arch: a paddle steamer, brick warehouses, the levee |
+| Chris | Washington State | the apple farm: Mount Rainier, firs, orchard, red barn, silo, windmill, hay |
+| Isaac | 125th Street, Harlem | a daytime block party: brownstones, fire escapes, the marquee, a hydrant |
 | Teddy | Kentucky | a cave: glowing crystals, hanging lanterns, bones on the floor |
 | Pip | Georgia | a garden: greenhouse, hedges, flower beds and gnome-hatted onlookers |
 | Blue | Florida | the Everglades, baby-sized: giant leaves, mushrooms, a ladybug and a snail |

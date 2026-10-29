@@ -29,7 +29,7 @@ and its dumped fighter poses as `render/poses_orig/charN.json`.
 | `tools/select_bg.py` | the player-select map: the United States with the eight stage locations |
 | `tools/scenes2.py` | paints the eight 384x224 arenas in the Street Fighter II recipe (sky band, tall middle layer with large spectators whose faces and lip colour follow their skin tone, flanking props, perspective floors); `render/stageN.png` |
 | `tools/gen_screens.py` | the nine paintings (stages 1..8 + the select map) as tiles/maps/palettes, title logo, 96x96 portraits + 32x32 icons, 32x32 effect cells (crowd, birds, butterflies, candles, shadow, sparks), sky gradient HDMA tables, per-stage ambient records, select labels; packs it all into 32 KB banks (`gen/screens.inc`) |
-| `tools/compose.py` | composes the nine songs (`data/songs/*.json`): one per location in a fitting style (West Coast funk for LA, pop rock for Ohio, jazzy hip hop for NYC, barn-dance country for Iowa, a folk waltz for Minnesota, deep mountain minor for Kentucky, southern soul for Georgia, Miami latin for Florida, a music-box lullaby for the title and select) |
+| `tools/compose.py` | composes the nine songs (`data/songs/*.json`): one per location in a fitting style (West Coast funk for LA, night-time boom bap for Arlo's rooftop, a twelve-bar blues for Saint Louis, barn-dance country for Washington, big-band swing for 125th Street, deep mountain minor for Kentucky, southern soul for Georgia, Miami latin for Florida, a music-box lullaby for the title and select) |
 | `tools/gen_audio.py` | synthesizes the 22 instruments, BRR-encodes them, converts all nine `data/songs/*.json` to `[delta frames][cmd][p1][p2][p3]` streams (48 ticks per beat) |
 | `tools/emu_test.py` | runs the ROM in Mesen2's test runner with injected pad input; Mesen's own PNG screenshot + zero page + OAM/CGRAM/VRAM/SPC probes come back through the 128 KB save RAM (Mesen's Lua may not write files). `--bg3` / `--oam` print the text layer and sprite table |
 | `tools/fixsum.py` | header checksum |
@@ -58,8 +58,9 @@ and its dumped fighter poses as `render/poses_orig/charN.json`.
   palette and health bar; PERFECT! when it goes down, TIME UP otherwise, then the title.
 - **Personalities**: every baby has a fighting style, a motivation (shown on the select screen) and win and
   lose lines (shown at the match end); see `BIO` in `tools/gen_asm.py`. All eight are American: the select map
-  is the United States (Brandon, Creole and born in Los Angeles, fights on the Venice Beach boardwalk; Arlo in
-  Ohio, Dawn in New York City, Chris in Iowa, Isaac in Minnesota, Teddy in Kentucky, Pip in Georgia, Blue in
+  is the United States (Brandon, Creole and born in Los Angeles, fights on the Venice Beach boardwalk; Arlo on his own
+  Harlem rooftop; Dawn in Saint Louis under the Arch; Chris on a Washington State apple farm under Mount
+  Rainier; Isaac, raised in Central Park, on 125th Street in Harlem; Teddy in Kentucky; Pip in Georgia; Blue in
   Florida).
 - **Supers** (A with a full meter): DIAPER DUMP, BINKY BLAST, BUBBLE BURP, TANTRUM TOSS and SPIT-UP SPRAY are
   projectiles (fired at frame 18 of the pose); BOTTLE BASH, RATTLE RAMPAGE (3 hits) and TEETHING CHOMP (hop)

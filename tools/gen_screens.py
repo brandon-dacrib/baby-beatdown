@@ -26,22 +26,21 @@ def bgr555(rgb):
 SKY = {1: ((255, 128, 72), (250, 196, 128)), 2: ((78, 140, 236), (196, 226, 250)), 3: ((6, 8, 36), (84, 44, 112)),
        4: ((132, 186, 240), (240, 232, 208)), 5: ((84, 156, 238), (212, 238, 250)), 6: ((16, 10, 12), (62, 40, 34)),
        7: ((250, 168, 192), (255, 240, 214)), 8: ((214, 244, 160), (124, 200, 96)), 9: ((6, 6, 60), (26, 30, 110))}
-STAGE_NAMES = ["LA", "OHIO", "NYC", "IOWA", "MINN", "KENTUCKY", "GEORGIA", "FLORIDA"]   # where each baby fights (tools/select_bg.py)
+STAGE_NAMES = ["LA", "HARLEM", "ST LOUIS", "WA STATE", "125TH ST", "KENTUCKY", "GEORGIA", "FLORIDA"]   # where each baby fights (tools/select_bg.py)
 # ambient configuration per stage:
 #   bands: (y0, y1, kind, amp_shift, ystep, speed) -> per-scanline BG1 horizontal scroll (kind 0 sine, 1 drift)
 #   cycle: (target rgb, amplitude 0..255, speed) -> the nearest palette colour breathes
 #   flicker: target rgb -> random darkening (candle / window light)
 #   crowd: [(x, y)], candles: [(x, y)], birds: 0/1 (bats on the rooftop), butterflies: n
 AMB = {
-    1: dict(birds=1, candles=[(44, 94), (196, 94)], bands=[(88, 104, 0, 6, 2, 2), (120, 159, 0, 6, 12, 4)],
-            cycle=((170, 220, 210), 60, 2)),
-    2: dict(birds=1, crowd=[(56, 104), (96, 104), (148, 104), (192, 104)], butterflies=1, bands=[(0, 60, 1, 0, 0, 2)]),
-    3: dict(birds=1, cycle=((255, 255, 255), 120, 3), flicker=(255, 230, 120)),
-    4: dict(birds=1, crowd=[(168, 128), (196, 128), (222, 128)], cycle=((170, 200, 230), 40, 1)),
-    5: dict(birds=1, bands=[(0, 40, 1, 0, 0, 1), (112, 160, 0, 5, 2, 2), (161, 223, 0, 6, 12, 4)], cycle=((120, 190, 240), 70, 3)),
+    1: dict(birds=1, bands=[(108, 142, 0, 6, 12, 4)], cycle=((190, 230, 240), 60, 2)),                       # LA: surf shimmer
+    2: dict(birds=1, cycle=((255, 255, 255), 120, 3), flicker=(255, 230, 120)),                               # Arlo's Harlem rooftop: twinkle, window light
+    3: dict(birds=1, bands=[(0, 50, 1, 0, 0, 3), (112, 150, 0, 6, 12, 4)], cycle=((200, 240, 255), 60, 2)),  # St. Louis: clouds drift, the river shimmers
+    4: dict(birds=1, bands=[(0, 60, 1, 0, 0, 3), (100, 150, 0, 6, 2, 2)], cycle=((170, 200, 230), 40, 1)),   # Washington: clouds, orchard sway
+    5: dict(flicker=(255, 210, 90), cycle=((255, 90, 120), 90, 4)),                                            # 125th Street: marquee bulbs
     6: dict(candles=[(28, 56), (220, 56), (124, 40)], cycle=((255, 210, 90), 80, 4), flicker=(240, 170, 40)),
-    7: dict(birds=1, butterflies=2, crowd=[(40, 96), (120, 96), (200, 96)], bands=[(136, 160, 0, 6, 2, 2)]),
-    8: dict(butterflies=2, bands=[(64, 160, 0, 5, 1, 2)], cycle=((190, 240, 255), 90, 3)),
+    7: dict(birds=1, butterflies=2, bands=[(136, 160, 0, 6, 2, 2)]),
+    8: dict(butterflies=2, bands=[(64, 150, 0, 5, 1, 2)], cycle=((190, 240, 255), 90, 3)),
     9: dict(bands=[(16, 100, 0, 7, 3, 1)]),
 }
 
@@ -485,10 +484,14 @@ inc.append("FACE_BANK:\n  .byte " + ", ".join(f"^face{i}_tiles" for i in range(1
 inc.append("ICON_TAB:\n  .word " + ", ".join(f".loword(icon{i}_tiles)" for i in range(1, 9)))
 inc.append("ICON_BANK:\n  .byte " + ", ".join(f"^icon{i}_tiles" for i in range(1, 9)))
 # select map labels: (col, row) per stage and the names as glyph ids (8 bytes, 0 padded)
-LOC = [(1, 9), (20, 3), (24, 2), (13, 7), (15, 2), (17, 8), (21, 10), (22, 12)]
+LOC = [(1, 9), (24, 1), (16, 8), (0, 2), (23, 3), (17, 10), (20, 12), (24, 13)]
 inc.append("SEL_LOC_COL:\n  .byte " + ", ".join(str(c) for c, r in LOC))
 inc.append("SEL_LOC_ROW:\n  .byte " + ", ".join(str(r) for c, r in LOC))
 inc.append("STAGE_NAME:")
-for s in STAGE_NAMES: inc.append("  .byte " + ", ".join(str(ord(ch) - 64 if ch != " " else 0) for ch in (s + "        ")[:8]))
+def glyph_id(ch):
+    if "A" <= ch <= "Z": return ord(ch) - 64
+    if "0" <= ch <= "9": return 27 + ord(ch) - 48
+    return 0
+for s in STAGE_NAMES: inc.append("  .byte " + ", ".join(str(glyph_id(ch)) for ch in (s + "        ")[:8]))
 open(os.path.join(OUT, "screens.inc"), "w").write("\n".join(inc) + "\n")
 print("screens.inc written")

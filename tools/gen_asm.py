@@ -158,7 +158,7 @@ for key, idx in (("P", 0), ("K", 1)):
         lst = [mv(n) for n in ch[idx].split()]; vals += (lst + [0] * 6)[:6]
     tb("CH_CHAIN_" + key, vals)
 # breakable object per stage : 0 barrel, 1 crate, 2 pot, 3 dew
-tb("STAGE_OBJ", [0, 2, 1, 0, 1, 2, 2, 3])
+tb("STAGE_OBJ", [0, 1, 0, 1, 2, 2, 2, 3])
 # personalities: style (12), motivation (22), win line (24), lose line (24); glyphs available: A-Z 0-9 ! . - :
 BIO = [("BRANDON", "LAST COOKIE OR BUST", "COOKIE TIME! ALL MINE.", "WAAAH! NO COOKIE!"),
        ("ARLO", "GUARDING HIS SQUEAKY", "WHO IS A GOOD BOY! ME!", "MY SQUEAKY... GONE."),

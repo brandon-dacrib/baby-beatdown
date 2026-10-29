@@ -44,20 +44,24 @@ stage2_tiles: .incbin "../gen/stage2.bin"
 stage2_tiles_end:
 icon4_tiles: .incbin "../gen/icon4.bin"
 icon4_tiles_end:
-icon5_tiles: .incbin "../gen/icon5.bin"
-icon5_tiles_end:
 .segment "DATA33"
 stage3_tiles: .incbin "../gen/stage3.bin"
 stage3_tiles_end:
-icon6_tiles: .incbin "../gen/icon6.bin"
-icon6_tiles_end:
-.segment "DATA34"
-stage4_tiles: .incbin "../gen/stage4.bin"
-stage4_tiles_end:
 stage8_map: .incbin "../gen/stage8.map"
 stage8_map_end:
 stage8_pal: .incbin "../gen/stage8.pal"
 stage8_pal_end:
+icon5_tiles: .incbin "../gen/icon5.bin"
+icon5_tiles_end:
+icon6_tiles: .incbin "../gen/icon6.bin"
+icon6_tiles_end:
+icon7_tiles: .incbin "../gen/icon7.bin"
+icon7_tiles_end:
+icon8_tiles: .incbin "../gen/icon8.bin"
+icon8_tiles_end:
+.segment "DATA34"
+stage4_tiles: .incbin "../gen/stage4.bin"
+stage4_tiles_end:
 stage9_map: .incbin "../gen/stage9.map"
 stage9_map_end:
 stage9_pal: .incbin "../gen/stage9.pal"
@@ -65,28 +69,24 @@ stage9_pal_end:
 .segment "DATA35"
 stage5_tiles: .incbin "../gen/stage5.bin"
 stage5_tiles_end:
-icon7_tiles: .incbin "../gen/icon7.bin"
-icon7_tiles_end:
-icon8_tiles: .incbin "../gen/icon8.bin"
-icon8_tiles_end:
+stage9_tiles: .incbin "../gen/stage9.bin"
+stage9_tiles_end:
 .segment "DATA36"
 stage6_tiles: .incbin "../gen/stage6.bin"
 stage6_tiles_end:
-stage9_tiles: .incbin "../gen/stage9.bin"
-stage9_tiles_end:
+face1_tiles: .incbin "../gen/face1.bin"
+face1_tiles_end:
+face2_tiles: .incbin "../gen/face2.bin"
+face2_tiles_end:
 .segment "DATA37"
 stage7_tiles: .incbin "../gen/stage7.bin"
 stage7_tiles_end:
-face1_tiles: .incbin "../gen/face1.bin"
-face1_tiles_end:
+face3_tiles: .incbin "../gen/face3.bin"
+face3_tiles_end:
 .segment "DATA38"
 stage8_tiles: .incbin "../gen/stage8.bin"
 stage8_tiles_end:
 .segment "DATA39"
-face2_tiles: .incbin "../gen/face2.bin"
-face2_tiles_end:
-face3_tiles: .incbin "../gen/face3.bin"
-face3_tiles_end:
 face4_tiles: .incbin "../gen/face4.bin"
 face4_tiles_end:
 face5_tiles: .incbin "../gen/face5.bin"
@@ -97,11 +97,11 @@ face7_tiles: .incbin "../gen/face7.bin"
 face7_tiles_end:
 face8_tiles: .incbin "../gen/face8.bin"
 face8_tiles_end:
+crib_tiles: .incbin "../gen/crib.bin"
+crib_tiles_end:
 .segment "DATA40"
 fx_tiles: .incbin "../gen/fx.bin"
 fx_tiles_end:
-crib_tiles: .incbin "../gen/crib.bin"
-crib_tiles_end:
 .segment "RODATA"
 ; STAGE_TAB: 8 bytes per stage 1..9 (entry 0 dummy): tiles addr, tiles bytes, map addr, pal addr; banks: STAGE_TBANK (tiles), STAGE_MBANK (map + palettes)
 STAGE_TAB:
@@ -160,21 +160,21 @@ SKYRG_TAB:
 SKYB_TAB:
   .word 0, .loword(SKYB_1), .loword(SKYB_2), .loword(SKYB_3), .loword(SKYB_4), .loword(SKYB_5), .loword(SKYB_6), .loword(SKYB_7), .loword(SKYB_8), .loword(SKYB_9)
 AMB_1:
-  .byte 1, 2, 88, 17, 0, 6, 2, 2, 120, 40, 0, 6, 12, 4, 60, 2, 20, 107, 86, 115, 119, 119, 152, 123, 185, 127, 152, 123, 119, 119, 86, 115, 20, 107, 210, 98, 177, 94, 144, 90, 144, 90, 144, 90, 177, 94, 210, 98, 0, 0, 0, 0, 0, 0, 2, 44, 0, 94, 196, 0, 94
+  .byte 1, 1, 108, 35, 0, 6, 12, 4, 60, 2, 20, 107, 86, 115, 119, 119, 152, 123, 185, 127, 152, 123, 119, 119, 86, 115, 20, 107, 210, 98, 177, 94, 144, 90, 144, 90, 144, 90, 177, 94, 210, 98, 0, 0, 0, 0, 0, 0, 0
 AMB_2:
-  .byte 3, 1, 0, 61, 1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 56, 0, 104, 96, 0, 104, 148, 0, 104, 192, 0, 104, 0
+  .byte 1, 0, 53, 3, 57, 99, 156, 111, 255, 123, 255, 127, 255, 127, 255, 127, 255, 123, 156, 111, 57, 99, 214, 86, 115, 74, 49, 66, 16, 62, 49, 66, 115, 74, 214, 86, 49, 127, 67, 86, 30, 0, 0
 AMB_3:
-  .byte 9, 0, 53, 3, 57, 99, 156, 111, 255, 123, 255, 127, 255, 127, 255, 127, 255, 123, 156, 111, 57, 99, 214, 86, 115, 74, 49, 66, 16, 62, 49, 66, 115, 74, 214, 86, 49, 127, 67, 86, 30, 0, 0
+  .byte 9, 2, 0, 51, 1, 0, 0, 3, 112, 39, 0, 6, 12, 4, 75, 2, 56, 107, 122, 115, 155, 119, 188, 123, 221, 127, 188, 123, 155, 119, 122, 115, 56, 107, 246, 98, 213, 94, 180, 90, 180, 90, 180, 90, 213, 94, 246, 98, 0, 0, 0, 0, 0, 0, 0
 AMB_4:
-  .byte 1, 0, 57, 1, 23, 111, 56, 115, 89, 119, 122, 123, 122, 123, 122, 123, 89, 119, 56, 115, 23, 111, 246, 106, 213, 102, 180, 98, 180, 98, 180, 98, 213, 102, 246, 106, 0, 0, 0, 0, 0, 3, 168, 0, 128, 196, 0, 128, 222, 0, 128, 0
+  .byte 1, 2, 0, 61, 1, 0, 0, 3, 100, 51, 0, 6, 2, 2, 53, 1, 23, 111, 56, 115, 89, 119, 122, 123, 122, 123, 122, 123, 89, 119, 56, 115, 23, 111, 246, 106, 213, 102, 180, 98, 180, 98, 180, 98, 213, 102, 246, 106, 0, 0, 0, 0, 0, 0, 0
 AMB_5:
-  .byte 1, 3, 0, 41, 1, 0, 0, 1, 112, 49, 0, 5, 2, 2, 161, 63, 0, 6, 12, 4, 72, 3, 7, 98, 73, 106, 106, 110, 139, 114, 172, 118, 139, 114, 106, 110, 73, 106, 7, 98, 164, 85, 131, 81, 98, 77, 65, 73, 98, 77, 131, 81, 164, 85, 0, 0, 0, 0, 0, 0, 0
+  .byte 0, 0, 93, 4, 90, 20, 156, 28, 222, 36, 31, 45, 31, 45, 31, 45, 222, 36, 156, 28, 90, 20, 23, 8, 21, 0, 19, 0, 19, 0, 19, 0, 21, 0, 23, 8, 88, 95, 51, 54, 14, 0, 0
 AMB_6:
   .byte 0, 0, 82, 4, 187, 30, 253, 38, 63, 47, 127, 55, 127, 55, 127, 55, 63, 47, 253, 38, 187, 30, 121, 22, 55, 14, 245, 5, 245, 5, 245, 5, 55, 14, 121, 22, 74, 190, 30, 149, 1, 0, 3, 28, 0, 56, 220, 0, 56, 124, 0, 40
 AMB_7:
-  .byte 5, 1, 136, 25, 0, 6, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 40, 0, 96, 120, 0, 96, 200, 0, 96, 0
+  .byte 5, 1, 136, 25, 0, 6, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 AMB_8:
-  .byte 4, 1, 64, 97, 0, 5, 1, 2, 68, 3, 91, 107, 157, 115, 223, 123, 255, 127, 255, 127, 255, 127, 223, 123, 157, 115, 91, 107, 248, 94, 182, 86, 116, 78, 116, 78, 116, 78, 182, 86, 248, 94, 0, 0, 0, 0, 0, 0, 0
+  .byte 4, 1, 64, 87, 0, 5, 1, 2, 68, 3, 91, 107, 157, 115, 223, 123, 255, 127, 255, 127, 255, 127, 223, 123, 157, 115, 91, 107, 248, 94, 182, 86, 116, 78, 116, 78, 116, 78, 182, 86, 248, 94, 0, 0, 0, 0, 0, 0, 0
 AMB_9:
   .byte 0, 1, 16, 85, 0, 7, 3, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 AMB_TAB:
@@ -227,15 +227,15 @@ ICON_TAB:
 ICON_BANK:
   .byte ^icon1_tiles, ^icon2_tiles, ^icon3_tiles, ^icon4_tiles, ^icon5_tiles, ^icon6_tiles, ^icon7_tiles, ^icon8_tiles
 SEL_LOC_COL:
-  .byte 1, 20, 24, 13, 15, 17, 21, 22
+  .byte 1, 24, 16, 0, 23, 17, 20, 24
 SEL_LOC_ROW:
-  .byte 9, 3, 2, 7, 2, 8, 10, 12
+  .byte 9, 1, 8, 2, 3, 10, 12, 13
 STAGE_NAME:
   .byte 12, 1, 0, 0, 0, 0, 0, 0
-  .byte 15, 8, 9, 15, 0, 0, 0, 0
-  .byte 14, 25, 3, 0, 0, 0, 0, 0
-  .byte 9, 15, 23, 1, 0, 0, 0, 0
-  .byte 13, 9, 14, 14, 0, 0, 0, 0
+  .byte 8, 1, 18, 12, 5, 13, 0, 0
+  .byte 19, 20, 0, 12, 15, 21, 9, 19
+  .byte 23, 1, 0, 19, 20, 1, 20, 5
+  .byte 28, 29, 32, 20, 8, 0, 19, 20
   .byte 11, 5, 14, 20, 21, 3, 11, 25
   .byte 7, 5, 15, 18, 7, 9, 1, 0
   .byte 6, 12, 15, 18, 9, 4, 1, 0

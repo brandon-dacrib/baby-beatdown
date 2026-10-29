@@ -31,7 +31,7 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           sed -i "s/^VERSION := .*/VERSION := ${TAG#v}/" Makefile
           make package
-          cp build/baby-beatdown-${TAG#v}.zip baby-beatdown-$TAG.zip
+          cp build/baby-beatdown-$TAG.zip baby-beatdown-$TAG.zip
           cp dist/baby-beatdown.sfc baby-beatdown-$TAG.sfc
       - name: release
         env:

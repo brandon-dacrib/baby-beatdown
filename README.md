@@ -33,10 +33,10 @@ repository, in any accurate SNES emulator or on a flash cart.
 | baby | species | style | home stage |
 |---|---|---|---|
 | Brandon | Creole kid, born in LA | boxing / Jeet Kune Do | Venice Beach boardwalk, Los Angeles |
-| Arlo | terrier puppy | capoeira | a backyard in Ohio |
-| Dawn | kitten | kung fu | a Brooklyn rooftop, New York City |
-| Chris | piglet | sumo | a farm in Iowa |
-| Isaac | duckling | taekwondo | a lake in Minnesota |
+| Arlo | terrier puppy | capoeira | his own rooftop in Harlem, New York City |
+| Dawn | kitten | kung fu | the riverfront under the Arch, Saint Louis |
+| Chris | piglet | sumo | an apple farm under Mount Rainier, Washington State |
+| Isaac | duckling, raised in Central Park | taekwondo | 125th Street, Harlem |
 | Teddy | bear cub | wrestling | a cave in Kentucky |
 | Pip | bunny | muay thai | a garden in Georgia |
 | Blue | blue bug | karate | the Everglades, Florida |

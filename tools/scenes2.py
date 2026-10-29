@@ -114,7 +114,7 @@ def floor_tiles(c, color, grout=(0.55, 0.52, 0.5), y0=FLOOR0, y1=H - 1, nx=10, n
     m = c.rect(0, y0, W - 1, y1)
     c.fill(m, color, tex if tex is not None else c.stone(seed, 9), 0.22, vgrad=(y0, y1, 0.88, 1.06))
     lines = c.mask()
-    for i in range(nx + 1):
+    for i in range(nx + 1 if nx else 0):
         xb = -W * 0.25 + i * (W * 1.5 / nx)
         lines |= c.line_mask(VX + (xb - VX) * 0.3, y0, xb, y1 + 1, 1)
     for y in _horizon_rows(y0, y1, ny, 1.8)[1:-1]:
@@ -277,39 +277,9 @@ def bayou():
     floor_planks(c, (190, 150, 100), (0.55, 0.5, 0.45), along=False, seed=14)
     return c
 
-# ------------------------------------------------------------------ 2 BACKYARD (Guile's crowd at the fence)
-def backyard():
-    c = Canvas(seed=22); SKY[2] = ((78, 140, 236), (196, 226, 250))
-    clouds(c, [(50, 28, 36), (190, 18, 28), (330, 34, 40)])
-    hills(c, 112, 124, 10, (110, 170, 90), 2, period=2.0)
-    # the house: wall, roof, big window, door
-    wall = c.rect(20, 46, 232, 140); c.fill(wall, (236, 222, 190), c.wood(3, 8, True, 0.12), 0.35, vgrad=(46, 140, 1.05, 0.9)); c.shade(wall, (-1, -1), 1.15, 0.7, 2)
-    roof = c.poly([(8, 50), (244, 50), (214, 14), (38, 14)]); c.fill(roof, (120, 60, 50), c.bricks(14, 5, -0.4, 4), 0.45); c.shade(roof, (-1, -1), 1.25, 0.6, 2); c.shadow(roof, 0, 5, 0.65); c.outline(roof, k=0.45)
-    window(c, 40, 66, 108, 112, (255, 255, 255), (120, 190, 230)); window(c, 148, 66, 216, 112, (255, 255, 255), (120, 190, 230))
-    door = c.rect(118, 90, 142, 140); c.fill(door, (90, 60, 40), c.wood(5, 99, False, 0.3), 0.4); c.shade(door, (-1, -1), 1.2, 0.65, 2); c.outline(door, k=0.5)
-    c.fill(c.circle(138, 116, 1.5), (240, 200, 80)); c.outline(wall, k=0.5)
-    # big tree right, swing
-    c.tree(318, 142, 150, (110, 76, 46), (70, 150, 70), seed=7, spread=1.25)
-    for k in range(2):
-        rope = c.rect(300 + k * 18, 80, 301 + k * 18, 128); c.fill(rope, (200, 180, 120))
-    seat = c.rect(294, 128, 326, 132); c.fill(seat, (140, 100, 60)); c.outline(seat, k=0.5)
-    # fence and spectators
-    picket_fence(c, 126, 152, (250, 250, 250), (200, 200, 205), pitch=11, pw=7)
-    crowd(c, [(60, 152, 44, dict(skin="dark", shirt=(240, 60, 60), pants=(50, 60, 120), hair=(20, 16, 18), pose="cheer")),
-              (100, 152, 40, dict(skin="ivory", shirt=(90, 190, 90), pants=(80, 70, 60), hair=(220, 180, 80), pose="stand")),
-              (150, 152, 46, dict(skin="brown", shirt=(70, 110, 220), pants=(60, 60, 70), hat=("cap", (230, 50, 50)), pose="lean")),
-              (200, 152, 38, dict(skin="tan", shirt=(250, 200, 60), pants=(90, 130, 200), hair=(60, 40, 30), pose="cheer", flip=True)),
-              (250, 152, 44, dict(skin="ivory", shirt=(230, 120, 180), pants=(70, 80, 120), hair=(120, 70, 40), pose="stand"))])
-    # props: grill left, sandbox right
-    grill = c.ellipse(26, 146, 16, 8) | c.rect(10, 146, 42, 154) | c.rect(14, 154, 16, 170) | c.rect(36, 154, 38, 170)
-    c.fill(grill, (50, 50, 56)); c.shade(grill, (-1, -1), 1.3, 0.6, 2); c.outline(grill, k=0.5)
-    box = c.rect(330, 160, 384, 176); c.fill(box, (170, 120, 70), c.wood(6, 99, True, 0.3), 0.4); c.shade(box, (-1, -1), 1.2, 0.6, 2); c.outline(box, k=0.5)
-    floor_ground(c, (96, 168, 72), (0.82, 0.9, 0.7), kind="grass", seed=21)
-    return c
-
-# ------------------------------------------------------------------ 3 ROOFTOP (night city, water tower, neon)
+# ------------------------------------------------------------------ 2 ARLO'S HARLEM ROOFTOP (night, water tower, neon)
 def rooftop():
-    c = Canvas(seed=33); SKY[3] = ((6, 8, 36), (84, 44, 112))
+    c = Canvas(seed=33); SKY[2] = ((6, 8, 36), (84, 44, 112))
     rng = np.random.default_rng(5)
     for i in range(60):
         x, y = rng.integers(0, W), rng.integers(0, 70); c.fill(c.rect(x, y, x, y), (255, 255, 230))
@@ -340,11 +310,23 @@ def rooftop():
     floor_tiles(c, (104, 96, 110), (0.6, 0.6, 0.66), nx=8, ny=5, seed=9)
     return c
 
-# ------------------------------------------------------------------ 4 FARM (barn, silo, windmill, hay)
+# ------------------------------------------------------------------ 4 WASHINGTON STATE: Chris's apple farm under Mount Rainier
 def farm():
-    c = Canvas(seed=44); SKY[4] = ((132, 186, 240), (240, 232, 208))
-    sun(c, 60, 40, 18); clouds(c, [(150, 28, 30), (290, 20, 36)])
-    hills(c, 120, 140, 16, (150, 190, 90), 3, period=1.2)
+    c = Canvas(seed=44); SKY[4] = ((110, 170, 240), (225, 235, 245))
+    clouds(c, [(150, 24, 30), (300, 18, 36)])
+    # Mount Rainier: a big snowy cone behind everything, dark firs in front of it
+    mtn = c.poly([(100, 112), (300, 112), (240, 50), (214, 24), (200, 20), (186, 26), (160, 54)])
+    c.fill(mtn, (120, 130, 160), c.stone(2, 10), 0.25, vgrad=(20, 112, 1.05, 0.85)); c.shade(mtn, (-1, -1), 1.15, 0.75, 2)
+    snow = mtn & (np.mgrid[0:H, 0:W][0] < 64) & (c.value_noise(6, 4) > -0.2); c.fill(snow, (245, 248, 255)); c.outline(mtn, k=0.6)
+    firs = c.mask(); rng = np.random.default_rng(5)
+    for i in range(40):
+        x = i * 10 + rng.integers(0, 6); h = 18 + rng.integers(0, 22)
+        firs |= c.poly([(x - 6, 120), (x + 6, 120), (x, 120 - h)])
+    c.fill(firs, (40, 90, 60), c.foliage(6), 0.3); c.outline(firs, k=0.6)
+    hills(c, 124, 140, 10, (120, 170, 80), 3, period=1.2)
+    for (x, seed) in ((300, 11), (340, 12), (372, 13)):
+        c.tree(x, 150, 70, (110, 76, 46), (70, 150, 60), seed=seed, spread=1.0)
+        for k in range(5): c.fill(c.circle(x - 14 + k * 7, 110 + (k % 2) * 8, 2.5), (230, 50, 50))
     # windmill far right, silo, barn left-centre
     silo = c.rect(236, 40, 268, 140); c.fill(silo, (200, 200, 205), c.value_noise(5, 3, aspect=0.2), 0.2, vgrad=(40, 140, 1.05, 0.85)); c.shade(silo, (-1, 0), 1.25, 0.6, 4)
     dome = c.ellipse(252, 40, 17, 10); c.fill(dome, (150, 60, 50)); c.shade(dome, (-1, -1), 1.2, 0.65, 2); c.outline(silo | dome, k=0.5)
@@ -370,8 +352,10 @@ def farm():
     floor_ground(c, (170, 128, 80), (0.8, 0.74, 0.62), seed=31)
     return c
 
-# ------------------------------------------------------------------ 5 POND (willows, a pier, lily pads)
+# ------------------------------------------------------------------ 5 ISAAC'S 125TH STREET, HARLEM (a daytime block party)
 def pond():
+    return harlem_street()
+def pond_old():
     c = Canvas(seed=55); SKY[5] = ((84, 156, 238), (212, 238, 250))
     clouds(c, [(80, 24, 40), (250, 30, 34)])
     hills(c, 100, 120, 14, (90, 150, 80), 4, period=1.6)
@@ -400,6 +384,77 @@ def pond():
     for x in range(330, 384, 7): reeds |= c.rect(x, 126 - (x % 4) * 5, x + 1, FLOOR0)
     c.fill(reeds, (70, 130, 60)); c.fill(c.rect(0, 150, W - 1, FLOOR0 - 1) & reeds, (50, 100, 50))
     floor_planks(c, (150, 112, 70), (0.5, 0.46, 0.4), along=True, nx=14, seed=18)
+    return c
+
+def harlem_street():
+    c = Canvas(seed=55); SKY[5] = ((90, 150, 240), (210, 230, 250))
+    clouds(c, [(70, 26, 34), (250, 22, 30)])
+    skyline(c, 60, 12, (70, 60, 80), lit=(200, 210, 230), lo=20, hi=50)
+    # a row of brownstones with stoops and fire escapes
+    for i, x0 in enumerate((0, 96, 192, 288)):
+        wall = c.rect(x0, 40 + (i % 2) * 6, x0 + 94, FLOOR0 - 1)
+        col = [(150, 80, 60), (170, 100, 70), (140, 70, 60), (165, 90, 66)][i]
+        c.fill(wall, col, c.bricks(12, 5, -0.4, 7 + i), 0.4, vgrad=(40, FLOOR0, 1.05, 0.88)); c.shade(wall, (-1, -1), 1.12, 0.75, 2)
+        for wy in (54, 84):
+            for wx in (x0 + 10, x0 + 38, x0 + 66):
+                window(c, wx, wy, wx + 18, wy + 22, (240, 230, 210), (110, 150, 190), lit=(i + wx) % 3 == 0)
+        door = c.rect(x0 + 38, 118, x0 + 58, FLOOR0 - 1); c.fill(door, (70, 40, 30), c.wood(i, 99, False, 0.3), 0.4); c.outline(door, k=0.5)
+        stoop = c.poly([(x0 + 30, FLOOR0 - 1), (x0 + 66, FLOOR0 - 1), (x0 + 60, 136), (x0 + 36, 136)]); c.fill(stoop, (170, 160, 150)); c.shade(stoop, (0, -1), 1.2, 0.7, 1); c.outline(stoop, k=0.5)
+        fe = c.rect(x0 + 6, 78, x0 + 88, 80) | c.rect(x0 + 6, 78, x0 + 8, 108) | c.rect(x0 + 86, 78, x0 + 88, 108)
+        for bx in range(x0 + 10, x0 + 88, 6): fe |= c.rect(bx, 80, bx, 108)
+        c.fill(fe, (50, 50, 60))
+        c.outline(wall, k=0.5)
+    # the marquee: 125TH ST in bulbs, a lamp post, a hydrant
+    marq = c.rect(112, 28, 272, 50); c.fill(marq, (200, 40, 60)); c.shade(marq, (-1, -1), 1.3, 0.6, 2); c.outline(marq, (255, 220, 120))
+    c.fill(c.rect(118, 34, 266, 44), (255, 245, 220))
+    for bx in range(116, 272, 8): c.fill(c.circle(bx, 30, 1.5), (255, 230, 120)); c.fill(c.circle(bx, 48, 1.5), (255, 230, 120))
+    for k, ch in enumerate("125TH"):
+        c.fill(c.rect(130 + k * 14, 36, 138 + k * 14, 42), (200, 40, 60))
+    c.fill(c.rect(216, 36, 258, 42), (200, 40, 60))
+    lamp = c.rect(300, 90, 303, FLOOR0 - 1) | c.rect(292, 86, 311, 92); c.fill(lamp, (40, 40, 50)); lantern(c, 301, 86, 6, (255, 240, 180), glow=False)
+    hyd = c.rect(60, 136, 70, 154) | c.rect(56, 142, 74, 146) | c.ellipse(65, 136, 5, 3); c.fill(hyd, (220, 50, 50)); c.shade(hyd, (-1, -1), 1.3, 0.6, 1); c.outline(hyd, k=0.5)
+    crowd(c, [(150, FLOOR0 - 2, 44, dict(skin="dark", shirt=(250, 200, 60), pants=(60, 60, 120), hair=(20, 16, 18), pose="cheer")),
+              (190, FLOOR0 - 2, 40, dict(skin="brown", shirt=(240, 240, 240), pants=(40, 40, 50), hat=("cap", (230, 50, 50)), pose="lean")),
+              (236, FLOOR0 - 2, 46, dict(skin="dark", shirt=(90, 90, 220), pants=(60, 60, 70), hair=(20, 16, 18), pose="stand", flip=True)),
+              (346, FLOOR0 - 2, 40, dict(skin="brown", shirt=(60, 180, 120), pants=(90, 60, 50), hat=("beanie", (220, 120, 40)), pose="cheer", flip=True))])
+    crate(c, 0, FLOOR0 - 26, 30, FLOOR0 + 2, (120, 100, 90)); barrel(c, 372, FLOOR0 + 12, 24, 34, (90, 90, 110), (160, 160, 170))
+    floor_tiles(c, (110, 106, 112), (0.6, 0.6, 0.64), nx=0, ny=5, seed=9)
+    yy, xx = np.mgrid[0:H, 0:W]
+    c.fill((yy >= FLOOR0 + 40) & (yy <= FLOOR0 + 43) & ((xx // 24) % 2 == 0), (240, 220, 90))      # the centre line
+    return c
+
+# ------------------------------------------------------------------ 3 SAINT LOUIS: the riverfront under the Gateway Arch
+def stlouis():
+    c = Canvas(seed=33); SKY[3] = ((120, 160, 230), (250, 220, 170))
+    sun(c, 80, 60, 16, (255, 250, 220), (255, 220, 150)); clouds(c, [(130, 30, 34), (300, 22, 30)])
+    # the arch: two legs of a big catenary, in front of the skyline
+    skyline(c, 112, 7, (120, 110, 130), lit=(255, 230, 160), lo=20, hi=60)
+    yy, xx = np.mgrid[0:H, 0:W]
+    t = (xx - 192) / 150.0
+    y_arch = 112 - 100 * (1 - t * t) * (np.abs(t) <= 1)
+    arch = (np.abs(yy - y_arch) < 7 + 6 * np.abs(t)) & (np.abs(t) <= 1) & (yy < 113)
+    c.fill(arch, (200, 205, 215), c.value_noise(4, 5, aspect=0.3), 0.15, vgrad=(10, 112, 1.1, 0.85)); c.shade(arch, (-1, -1), 1.2, 0.65, 2); c.outline(arch, k=0.55)
+    # the Mississippi with a paddle steamer
+    water = c.rect(0, 112, W - 1, 150); wn = c.value_noise(9, 21, octaves=2, aspect=0.25)
+    c.fill(water, (90, 110, 110), wn, 0.3, vgrad=(112, 150, 1.1, 0.85))
+    c.fill(water & (((xx // 2 + yy * 3) % 11) == 0) & (wn > 0.12), (200, 220, 220))
+    hull = c.poly([(250, 146), (370, 146), (378, 132), (244, 132)]); c.fill(hull, (240, 240, 240)); c.shade(hull, (-1, -1), 1.1, 0.7, 2)
+    c.fill(c.rect(244, 136, 378, 138), (200, 40, 50))
+    deck = c.rect(256, 116, 356, 132); c.fill(deck, (250, 250, 250)); c.shade(deck, (-1, -1), 1.1, 0.75, 1)
+    for wx in range(262, 352, 12): c.fill(c.rect(wx, 120, wx + 6, 128), (90, 130, 170))
+    for sx in (280, 320): c.fill(c.rect(sx, 98, sx + 6, 116), (60, 60, 70)); c.fill(c.rect(sx - 2, 96, sx + 8, 99), (200, 40, 50))
+    wheel = c.circle(366, 140, 12) & ~c.circle(366, 140, 8); c.fill(wheel, (200, 40, 50)); c.outline(hull | deck | wheel, k=0.5)
+    # the levee: brick warehouses on the left, cobbles, spectators
+    wh = c.rect(0, 70, 120, 150); c.fill(wh, (150, 80, 60), c.bricks(14, 6, -0.4, 4), 0.4, vgrad=(70, 150, 1.05, 0.88)); c.shade(wh, (-1, -1), 1.12, 0.72, 2)
+    for wy in (80, 108):
+        for wx in (10, 44, 78): window(c, wx, wy, wx + 22, wy + 18, (90, 60, 50), (60, 70, 90))
+    c.fill(c.rect(0, 66, 124, 72), (100, 60, 50)); c.outline(wh, k=0.5)
+    levee = c.rect(0, 150, W - 1, FLOOR0 - 1); c.fill(levee, (170, 160, 140), c.stone(8, 6), 0.3); c.outline(levee, k=0.7)
+    crowd(c, [(150, FLOOR0 - 2, 42, dict(skin="brown", shirt=(230, 60, 60), pants=(60, 60, 120), hair=(30, 20, 20), pose="cheer")),
+              (192, FLOOR0 - 2, 44, dict(skin="ivory", shirt=(60, 120, 200), pants=(70, 70, 80), hat=("cap", (200, 40, 50)), pose="stand")),
+              (236, FLOOR0 - 2, 40, dict(skin="dark", shirt=(250, 230, 120), pants=(50, 50, 60), hair=(20, 16, 18), pose="lean", flip=True))])
+    barrel(c, 20, FLOOR0 + 14, 22, 30); crate(c, 352, FLOOR0 - 26, 382, FLOOR0 + 2)
+    floor_tiles(c, (150, 130, 110), (0.6, 0.56, 0.5), nx=10, ny=6, seed=15, tex=c.stone(15, 5))
     return c
 
 # ------------------------------------------------------------------ 6 CAVE (crystals, lanterns, bones, a chasm)
@@ -494,7 +549,7 @@ def bigleaf():
     moss = (yy >= FLOOR0) & (c.value_noise(6, 17) > 0.12); c.fill(moss, (90, 150, 60), c.grass(5), 0.3)
     return c
 
-SCENES = {1: bayou, 2: backyard, 3: rooftop, 4: farm, 5: pond, 6: cave, 7: garden, 8: bigleaf}
+SCENES = {1: bayou, 2: rooftop, 3: stlouis, 4: farm, 5: pond, 6: cave, 7: garden, 8: bigleaf}
 
 def sky_preview(c, top, hor):
     yy = np.arange(H, dtype=np.float32)[:, None, None] / 168

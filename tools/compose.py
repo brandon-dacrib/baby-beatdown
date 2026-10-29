@@ -158,21 +158,22 @@ s.line("A4:0.5 C5:0.5 D5:1 F5:0.5 D5:0.5 C5:1 A4:0.5 C5:0.5 D5:2 -:1 F5:0.5 G5:0
        "D5:0.5 F5:0.5 A5:1 G5:0.5 F5:0.5 D5:1 C5:0.5 A4:0.5 C5:2 -:1 Bb4:0.5 D5:0.5 F5:1 E5:0.5 D5:0.5 C#5:1 E5:0.5 A5:0.5 A5:1.5 -:0.5 -:1", "lead", 72)
 s.line("-:8 F5:0.5 -:0.5 A5:0.5 -:0.5 F5:1 -:2 D5:0.5 -:0.5 F5:0.5 -:0.5 G5:1 -:2 -:16", "guitar", 50, octave=0)
 s.save("bayou")
-# ------------------------------------------------------------ 2 Ohio backyard: sunny pop rock
-s = Song(132)
-prog = [("C", 1), ("G", 1), ("Am", 1), ("F", 1), ("C", 1), ("G", 1), ("F", 1), ("G", 1)]
-s.drums("rock", 8); s.bass("rock", prog); s.chords("strum", prog, "guitar", 48)
-s.line("E5:0.5 G5:0.5 C6:1 B5:0.5 G5:0.5 E5:1 D5:0.5 E5:0.5 G5:1 E5:0.5 D5:0.5 C5:2 -:1 E5:0.5 G5:0.5 A5:1 G5:0.5 E5:0.5 D5:1 C5:0.5 D5:0.5 E5:2 -:0.5 "
-       "C5:0.5 E5:0.5 G5:0.5 C6:1 B5:0.5 A5:0.5 G5:1 E5:0.5 G5:0.5 A5:1 G5:0.5 F5:0.5 E5:2 -:1 F5:0.5 A5:0.5 C6:1 A5:0.5 G5:0.5 E5:1 F5:0.5 G5:0.5 G5:2 -:1", "lead", 70)
-s.save("backyard")
-# ------------------------------------------------------------ 3 New York rooftop: night hip hop with jazz chords
+# ------------------------------------------------------------ 2 Arlo's Harlem rooftop: night-time boom bap with jazz chords
 s = Song(92, swing=50)
 prog = [("Am7", 2), ("Dm7", 2), ("Fmaj7", 2), ("E7", 2)]
 s.drums("hiphop", 8); s.bass("hiphop", prog); s.chords("pad", prog, "piano", 50, voices=2)
 s.line("E5:1 -:0.5 G5:0.5 A5:1 -:0.5 G5:0.5 E5:1 D5:0.5 C5:0.5 D5:1 -:1 A4:0.5 C5:0.5 D5:1 F5:0.5 E5:0.5 D5:1 C5:1 -:1 "
        "A4:0.5 C5:0.5 E5:1 -:0.5 G5:0.5 A5:1 G5:0.5 E5:0.5 C5:1 -:1 B4:0.5 D5:0.5 E5:1 G#5:0.5 B5:0.5 E5:1 D5:0.5 B4:0.5 E5:2 -:1", "vibes", 68)
-s.save("rooftop")
-# ------------------------------------------------------------ 4 Iowa farm: barn-dance country
+s.save("backyard")
+# ------------------------------------------------------------ 3 Saint Louis: a twelve-bar blues shuffle under the Arch
+s = Song(120, swing=60)
+prog = [("E7", 4), ("A7", 2), ("E7", 2), ("B7", 1), ("A7", 1), ("E7", 2)]
+s.drums("soul", 12); s.bass("soul", prog, "bass", 105); s.chords("stabs", prog, "piano", 48)
+s.line("E5:0.5 G5:0.5 G#5:0.5 B5:1 D6:0.5 B5:1 G#5:0.5 E5:1.5 -:1.5 G5:0.5 G#5:0.5 B5:1 D6:0.5 E6:1 D6:0.5 B5:1 G#5:0.5 E5:1 -:1.5 "
+       "A5:0.5 C6:0.5 C#6:0.5 E6:1 G6:0.5 E6:1 C#6:0.5 A5:1.5 -:1.5 G5:0.5 G#5:0.5 B5:1 D6:0.5 B5:1 G#5:0.5 E5:1 -:2 "
+       "B5:0.5 D6:0.5 F#6:1 D6:0.5 B5:1 A5:0.5 C#6:0.5 E6:1 C#6:0.5 A5:1 G5:0.5 E5:1 G#5:0.5 B5:1 D6:0.5 E6:2 -:2", "guitar", 68)
+s.save("rooftop", 12)
+# ------------------------------------------------------------ 4 Washington State apple farm: barn-dance country
 s = Song(140)
 prog = [("G", 2), ("C", 1), ("G", 1), ("D", 2), ("G", 2)]
 s.drums("country", 8); s.bass("country", prog); s.chords("strum", prog, "pluck", 45)
@@ -181,13 +182,12 @@ s.line("D5:0.5 G5:0.5 B5:0.5 D6:0.5 B5:0.5 G5:0.5 A5:0.5 B5:0.5 C6:0.5 E6:0.5 C6
        "G5:0.5 A5:0.5 B5:0.5 G5:0.5 E6:0.5 D6:0.5 B5:0.5 G5:0.5 C6:0.5 E6:0.5 G6:0.5 E6:0.5 C6:1 A5:0.5 C6:0.5 "
        "D6:0.5 C6:0.5 A5:0.5 F#5:0.5 D5:0.5 F#5:0.5 A5:0.5 C6:0.5 B5:0.5 G5:0.5 D5:0.5 B4:0.5 G5:2", "strings", 66)
 s.save("farm")
-# ------------------------------------------------------------ 5 Minnesota lake: a gentle folk waltz (3/4 feel inside 4/4 bars: use 3-beat pulse)
-s = Song(126)
-prog = [("D", 2), ("Bm", 2), ("G", 2), ("A", 2)]
-s.drums("waltz", 8); s.bass("waltz", prog); s.chords("waltz", prog, "pluck", 45)
-s.line("F#5:1 A5:1 D6:2 -:0.5 C#6:0.5 B5:1 A5:1 F#5:2 -:1 D5:1 E5:1 F#5:2 -:0.5 E5:0.5 D5:1 B4:1 D5:2 -:1 "
-       "G5:1 B5:1 D6:2 -:0.5 E6:0.5 D6:1 B5:1 G5:2 -:1 A5:1 C#6:1 E6:2 -:0.5 D6:0.5 C#6:1 B5:1 A5:2 -:1", "flute", 62)
-s.line("-:16 D5:1 F#5:1 A5:2 -:4 B4:1 D5:1 F#5:2 -:4 -:16", "strings", 40)
+# ------------------------------------------------------------ 5 Isaac on 125th Street: big-band swing
+s = Song(168, swing=55)
+prog = [("C6", 2), ("Am7", 2), ("Dm7", 2), ("G7", 2)]
+s.drums("funk", 8); s.bass("country", prog, "bass", 100); s.chords("stabs", prog, "brass", 46)
+s.line("G5:0.5 E5:0.5 C5:1 E5:0.5 G5:0.5 A5:1 G5:0.5 E5:0.5 C5:2 -:1 A5:0.5 C6:0.5 E6:1 D6:0.5 C6:0.5 A5:1 G5:0.5 E5:0.5 A5:2 -:1 "
+       "D5:0.5 F5:0.5 A5:1 C6:0.5 A5:0.5 F5:1 D5:0.5 F5:0.5 A5:2 -:1 G5:0.5 B5:0.5 D6:1 F6:0.5 D6:0.5 B5:1 G5:0.5 B5:0.5 C6:2 -:1", "lead", 66)
 s.save("pond")
 # ------------------------------------------------------------ 6 Kentucky cave: mountain minor, slow and deep
 s = Song(96)
