@@ -81,6 +81,18 @@ A1T0H    = $4303
 A1B0     = $4304
 DAS0L    = $4305
 DAS0H    = $4306
+DMAP1    = $4310
+BBAD1    = $4311
+A1T1L    = $4312
+A1B1     = $4314
+DMAP2    = $4320
+BBAD2    = $4321
+A1T2L    = $4322
+A1B2     = $4324
+DMAP3    = $4330
+BBAD3    = $4331
+A1T3L    = $4332
+A1B3     = $4334
 
 .macro a8
   sep #$20
@@ -120,12 +132,11 @@ DAS0H    = $4306
 .endmacro
 ; load a signed byte from table,y into 16-bit A (sign extended)
 .macro ldsby tbl
-  .local pos
   ldby tbl
   cmp #$0080
-  bcc pos
+  bcc :+
   ora #$FF00
-pos:
+:
 .endmacro
 ; arithmetic shift right of 16-bit A by one
 .macro asr1

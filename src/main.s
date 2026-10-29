@@ -26,6 +26,11 @@ VRAM_FONT      = $3000
 VRAM_BG3_MAP   = $3C00
 VRAM_BG1_MAP   = $4000
 VRAM_OBJ       = $6000
+VRAM_BG2_TILES = $4000
+VRAM_BG2_MAP   = $4400
+LOGO_TILE      = 128                       ; BG2 tiles 128..205 (VRAM $4800)
+FACE_TILE      = 208                       ; BG2 tiles 208..351 (VRAM $4D00)
+BLANK2         = 206                       ; an all-zero BG2 tile
 HUD_PAL_WORD   = (5 << 10) | (1 << 13)    ; BG3 palette 5, priority 1
 SKY_COLOUR     = 12959                     ; rgb(252,162,100) in BGR555
 POSES_PER_CHAR = 56
@@ -108,18 +113,80 @@ song_base:.res 2
 song_wait:.res 2
 sfx_voice:.res 2
 sfx_sample:.res 2
+amb_ptr:  .res 2        ; AMB_n record of the current stage (bank $80)
+sng:      .res 4        ; long pointer into the song stream
+sng_base: .res 2
+ptr0:     .res 4        ; general long pointer
 
 .segment "BSS"
 oam_shadow: .res 544
-hud_shadow: .res 192    ; BG3 rows 1..3
+bg3_shadow: .res 1792   ; whole BG3 map, DMA'd every frame
+hud_shadow = bg3_shadow + 64   ; rows 1..3
+hofs_a:     .res 1024   ; HDMA scroll tables (double buffered)
+hofs_b:     .res 1024
+mode:       .res 2
+mtimer:     .res 2
+stage:      .res 2
+round_st:   .res 2
+round_t:    .res 2
+round_num:  .res 2
+winner:     .res 2
+msg_ptr:    .res 2
+sel_cur:    .res 2
+sel_cpu:    .res 2
+sel_t:      .res 2
+demo:       .res 2
+fade_v:     .res 2
+pad_new:    .res 2
+dma_bank:   .res 2
+sfx_pitch:  .res 2
+face_shown: .res 2
+face_up:    .res 2      ; portrait halves still to upload (NMI)
+pal_idx:    .res 2      ; palette request: cgram index (0 = none), 15 colours at pal_ptr
+pal_ptr:    .res 2
+amb_cyc:    .res 2      ; offsets into the ambient record
+amb_flk:    .res 2
+amb_crowd:  .res 2
+amb_cand:   .res 2
+amb_oam:    .res 2
+cyc_idx:    .res 2
+cyc_val:    .res 2
+flk_idx:    .res 2
+flk_val:    .res 2
+hofs_next:  .res 2
+hofs_flip:  .res 2
+hb_cnt:     .res 2
+hb_kind:    .res 2
+hb_amp:     .res 2
+hb_ystep:   .res 2
+hb_speed:   .res 2
+hb_phase:   .res 2
+hb_i:       .res 2
+oa_x:       .res 2
+oa_y:       .res 2
+oa_tile:    .res 2
+oa_attr:    .res 2
+oa_large:   .res 2
+oa_t0:      .res 2
+oa_t1:      .res 2
+spk_x:      .res 4
+spk_y:      .res 4
+spk_t:      .res 4
+spk_cell:   .res 4
+spk_next:   .res 2
+bird_on:    .res 2
+bird_t:     .res 2
+bird_vx:    .res 2
+bird_x:     .res 6
+bird_y:     .res 6
+bf_n:       .res 2
+bf_x:       .res 4
+bf_y:       .res 4
+bf_t:       .res 4
 
 ; ------------------------------------------------------------------ ROM data
 .segment "RODATA"
 .include "../gen/data.inc"
-stage_tiles: .incbin "../gen/stage1.bin"
-stage_tiles_end:
-stage_map:   .incbin "../gen/stage1.map"
-stage_pal:   .incbin "../gen/stage1.pal"
 font_tiles:  .incbin "../gen/font.bin"
 font_tiles_end:
 char_pals:
@@ -133,6 +200,7 @@ char_pals:
   .incbin "../gen/char8.pal"
 stage_pal_slots: .byte 0, 3, 4, 5, 6, 7
 .include "../gen/audio.inc"
+.include "../gen/screens.inc"
 .segment "AUDIO"            ; bank $9D: SPC driver + samples (read with long addressing)
 spc_driver:  .incbin "../build/spc.bin"
 spc_driver_end:
@@ -198,36 +266,38 @@ reset:
 : sta $0000,x
   inx
   inx
-  cpx #$1000
+  cpx #$1F00
   bne :-
   jsr init_video
   jsr spc_upload
-  jsr init_game
-  lda #.loword(SONG_BAYOU)
-  jsr song_start
-  a8
-  lda #$81
-  sta NMITIMEN              ; NMI + auto joypad
-  lda #$0F
-  sta INIDISP               ; screen on
-  ai16
+  jsr hide_all
+  lda #12345
+  sta rng
+  jsr title_setup
+  jsr fade_in
 main_loop:
 : lda nmi_flag
   beq :-
   stz nmi_flag
   jsr read_pads
-  ldx #2
-  jsr cpu_input
-  ldx #0
-  jsr update_fighter
-  ldx #2
-  jsr update_fighter
-  jsr separate
+  lda mode
+  beq @title
+  cmp #MODE_SELECT
+  beq @select
+  jsr fight_frame
+  bra @amb
+@title:
+  jsr title_frame
+  bra @amb
+@select:
+  jsr select_frame
+  jsr build_hofs
+  bra @tick
+@amb:
+  jsr update_ambient
+@tick:
   inc frame_ctr
-  jsr tick_clock
-  jsr check_round
-  jsr draw_fighters
-  jsr draw_hud
+  jsr rnd8                  ; keep the generator moving so re-rolls and picks differ
   jsr song_tick
   jmp main_loop
 
@@ -245,71 +315,6 @@ tick_clock:
 : sta sec_ctr
   rts
 
-; after a KO rests for 120 frames: score and reset the round
-check_round:
-  ldx #0
-  jsr @chk
-  ldx #2
-@chk:
-  lda fstate,x
-  cmp #ST_KO
-  bne @no
-  lda ftimer,x
-  cmp #120
-  bcc @no
-  jmp round_reset
-@no:
-  rts
-
-round_reset:
-  ldx #0
-  jsr @one
-  ldx #2
-  jsr @one
-  lda #1024
-  sta fx
-  lda #2816
-  sta fx+2
-  lda #1
-  sta fface
-  lda #$FFFF
-  sta fface+2
-  lda #99
-  sta clock
-  stz ai_t
-  stz ai_plan
-  rts
-@one:
-  lda fstate,x
-  cmp #ST_KO
-  bne @skip
-  txa
-  eor #2
-  tay                       ; Y = winner
-  lda fwins,y
-  cmp #2
-  bcs @clear
-  inc a
-  sta fwins,y
-  bra @skip
-@clear:
-  stz fwins
-  stz fwins+2
-@skip:
-  lda #HP_MAX
-  sta fhp,x
-  stz fmeter,x
-  stz fy,x
-  stz fvx,x
-  stz fvy,x
-  stz fstate,x
-  stz ftimer,x
-  stz fmove,x
-  stz fflash,x
-  stz flast,x
-  lda #SC_IDLE
-  jmp set_script
-
 ; ------------------------------------------------------------------ video init (forced blank)
 .proc init_video
   a8
@@ -319,26 +324,109 @@ round_reset:
   sta BG1SC
   lda #(VRAM_BG3_MAP >> 10) << 2
   sta BG3SC
-  lda #(VRAM_BG1_TILES >> 12)
+  lda #(VRAM_BG2_MAP >> 10) << 2
+  sta BG2SC
+  lda #(VRAM_BG1_TILES >> 12) | ((VRAM_BG2_TILES >> 12) << 4)
   sta BG12NBA
   lda #(VRAM_FONT >> 12)
   sta BG34NBA
-  lda #$43                  ; OBJ 8x8 / 64x64, name base $6000
+  lda #$A3                  ; OBJ 32x32 / 64x64, name base $6000
   sta OBSEL
   lda #$15                  ; BG1 + BG3 + OBJ
   sta TM
+  lda #$01                  ; BG1 on the sub screen: the shadow sprites (OBJ palette 4) average with it
+  sta TS
+  lda #$02
+  sta CGWSEL                ; colour math uses the sub screen
+  lda #$70                  ; add, half: OBJ (shadows) and the backdrop (sky = fixed colour, see HDMA 1/3)
+  sta CGADSUB
   lda #$80
   sta VMAIN
+  ; HDMA 1 + 3: sky gradient into the fixed colour COLDATA (mode 2: red+green, blue+blue), tables in ROM;
+  ; HDMA 2: BG1HOFS (mode 2), table in WRAM. Colour 0 stays black so the backdrop shows the fixed colour.
+  lda #$02
+  sta DMAP1
+  lda #$32
+  sta BBAD1
+  lda #$80
+  sta A1B1
+  lda #$02
+  sta DMAP3
+  lda #$32
+  sta BBAD3
+  lda #$80
+  sta A1B3
+  lda #$02
+  sta DMAP2
+  lda #$0D
+  sta BBAD2
+  stz A1B2
+  stz CGADD
+  stz CGDATA
+  stz CGDATA
   ai16
-  ; stage tiles -> $0000
-  lda #VRAM_BG1_TILES
-  ldx #.loword(stage_tiles)
-  ldy #stage_tiles_end - stage_tiles
+  ; effect cells -> OBJ rows 8.. (cell k: 4 rows of 4 tiles at tile 128 + (k/4)*64 + (k%4)*4)
+  ldx #0
+@fx:
+  stx tmp3
+  txa
+  jsr fx_tile
+  asl a
+  asl a
+  asl a
+  asl a
+  clc
+  adc #VRAM_OBJ
+  sta tmp1
+  lda tmp3
+  xba
+  asl a                     ; cell * 512
+  clc
+  adc #.loword(fx_tiles)
+  sta tmp0
+  ldy #4
+@fxrow:
+  phy
+  a8
+  lda #^fx_tiles
+  sta dma_bank
+  a16
+  lda tmp1
+  ldx tmp0
+  ldy #128
   jsr dma_vram
-  lda #VRAM_BG1_MAP
-  ldx #.loword(stage_map)
-  ldy #1792
+  lda tmp1
+  clc
+  adc #256
+  sta tmp1
+  lda tmp0
+  clc
+  adc #128
+  sta tmp0
+  ply
+  dey
+  bne @fxrow
+  ldx tmp3
+  inx
+  cpx #17
+  bne @fx
+  ; title logo tiles -> BG2 tiles 128.. ; tile 206 = the blank tile the BG2 map rests on
+  a8
+  lda #^logo_tiles
+  sta dma_bank
+  a16
+  lda #VRAM_BG2_TILES + LOGO_TILE * 16
+  ldx #.loword(logo_tiles)
+  ldy #logo_tiles_end - logo_tiles
   jsr dma_vram
+  lda #VRAM_BG2_TILES + BLANK2 * 16
+  sta VMADDL
+  ldx #16
+: stz VMDATAL
+  dex
+  bne :-
+  lda #$80
+  sta dma_bank
   lda #VRAM_FONT
   ldx #.loword(font_tiles)
   ldy #font_tiles_end - font_tiles
@@ -351,82 +439,28 @@ round_reset:
 : sta VMDATAL
   dex
   bne :-
-  ; palettes
-  a8
-  stz CGADD
-  lda #<SKY_COLOUR
-  sta CGDATA
-  lda #>SKY_COLOUR
-  sta CGDATA
-  ; stage palettes: slots 0,3,4,5,6,7 -> cgram slot*16+1..15
-  ldx #0
-@pal_slot:
-  a8
-  lda stage_pal_slots,x
-  asl a
-  asl a
-  asl a
-  asl a
-  inc a
-  sta CGADD
-  phx
-  txa
-  ai16
-  and #$00FF
-  sta tmp0
-  asl a                     ; *2
-  asl a                     ; *4
-  asl a                     ; *8
-  asl a                     ; *16
-  sec
-  sbc tmp0                  ; *15
-  asl a                     ; *30 bytes per palette
-  tax
-  ldy #15
-@pal_col:
-  a8
-  lda stage_pal,x
-  sta CGDATA
-  lda stage_pal+1,x
-  sta CGDATA
-  inx
-  inx
-  dey
-  bne @pal_col
-  ai16
-  plx
-  inx
-  cpx #6
-  bne @pal_slot
-  ; HUD palette 5 (cgram 20..23): transparent, dark, yellow, white
+  ; text palettes 5 (yellow), 6 (red), 7 (white); logo = BG palette 2
   a8
   lda #21
   sta CGADD
-  lda #<3138
-  sta CGDATA
-  lda #>3138
-  sta CGDATA
-  lda #<9119
-  sta CGDATA
-  lda #>9119
-  sta CGDATA
-  lda #$FF
-  sta CGDATA
-  lda #$7F
-  sta CGDATA
-  ai16
-  ; OAM shadow: everything off screen
   ldx #0
-  lda #$F0F0
-: sta oam_shadow,x
+: lda text_pals,x
+  sta CGDATA
   inx
-  inx
-  cpx #512
+  cpx #22
   bne :-
-  lda #$0A                  ; sprites 0 and 1 large
-  sta oam_shadow+512
+  lda #33
+  sta CGADD
+  ldx #0
+: lda LOGO_PAL,x
+  sta CGDATA
+  inx
+  cpx #10
+  bne :-
+  ai16
   rts
 .endproc
+text_pals: .word 3138, 9119, $7FFF, 0, 2118, 9247, 32703, 0, 4226, 29530, $7FFF
 
 ; DMA A = VRAM word address, X = source (bank $80), Y = byte count
 .proc dma_vram
@@ -437,54 +471,12 @@ round_reset:
   lda #$18
   sta BBAD0
   stx A1T0L
-  lda #$80
+  lda dma_bank
   sta A1B0
   sty DAS0L
   lda #1
   sta MDMAEN
   ai16
-  rts
-.endproc
-
-; ------------------------------------------------------------------ game init
-.proc init_game
-  lda #1024
-  sta fx
-  lda #2816
-  sta fx+2
-  lda #1
-  sta fface
-  lda #$FFFF
-  sta fface+2
-  lda #1
-  sta fchar
-  lda #2
-  sta fchar+2
-  lda #HP_MAX
-  sta fhp
-  sta fhp+2
-  lda #1
-  sta fboxset
-  sta fboxset+2
-  lda #$FFFF
-  sta fshown
-  sta fshown+2
-  lda #99
-  sta clock
-  lda #12345
-  sta rng
-  ; OBJ palettes for the two characters
-  ldx #0
-  jsr set_char_pal
-  ldx #2
-  jsr set_char_pal
-  ldx #0
-  lda #SC_IDLE
-  jsr set_script
-  ldx #2
-  lda #SC_IDLE
-  jsr set_script
-  jsr hud_names
   rts
 .endproc
 
@@ -548,28 +540,73 @@ nmi:
   stx DAS0L
   lda #1
   sta MDMAEN
-  ; HUD rows 1..3 of the BG3 map
+  ; the whole BG3 map
   lda #$80
   sta VMAIN
-  ldx #VRAM_BG3_MAP + 32
+  ldx #VRAM_BG3_MAP
   stx VMADDL
   lda #$01
   sta DMAP0
   lda #$18
   sta BBAD0
-  ldx #.loword(hud_shadow)
+  ldx #.loword(bg3_shadow)
   stx A1T0L
-  ldx #192
+  ldx #1792
   stx DAS0L
   lda #1
   sta MDMAEN
-  ; pose tiles: 8 rows of 256 bytes, ONE fighter per frame (two overrun the vertical blank; SF2T budgets the same way)
+  ; palette requests
   ai16
-  ldx #0
+  lda pal_idx
+  beq @no_pal
+  a8
+  sta CGADD
+  ldx pal_ptr
+  ldy #15
+: lda a:0,x
+  sta CGDATA
+  lda a:1,x
+  sta CGDATA
+  inx
+  inx
+  dey
+  bne :-
+  a16
+  stz pal_idx
+@no_pal:
+  lda cyc_idx
+  beq @no_cyc
+  a8
+  sta CGADD
+  lda cyc_val
+  sta CGDATA
+  lda cyc_val+1
+  sta CGDATA
+  a16
+@no_cyc:
+  lda flk_idx
+  beq @no_flk
+  a8
+  sta CGADD
+  lda flk_val
+  sta CGDATA
+  lda flk_val+1
+  sta CGDATA
+  a16
+@no_flk:
+  lda hofs_next
+  sta A1T2L
+  ; one upload per frame: a portrait half, else a dirty fighter's pose (8 rows of 256 bytes)
+  lda face_up
+  beq :+
+  jsr nmi_face_half
+  bra @up_done
+: ldx #0
   lda dirty
   bne :+
   ldx #2
 : jsr nmi_upload
+@up_done:
   lda #1
   sta nmi_flag
   ai16
@@ -666,6 +703,7 @@ nmi:
   eor #$FFFF
   and pad_now               ; newly pressed
   sta tmp0
+  sta pad_new
   bit #$4040                ; Y or X
   beq :+
   inc in_punch
@@ -943,6 +981,7 @@ nmi:
   clc
   adc #74
   sta rng
+  xba                       ; the high byte: the low byte of this generator barely changes
   and #$00FF
   rts
 .endproc
@@ -1401,6 +1440,8 @@ nmi:
 : sta fmeter,x
   lda #SC_BLOCK
   jsr set_script
+  lda #FX_BSPARK
+  jsr spawn_spark
   lda #SMP_TOM
   jmp sfx_play
 @no_block:
@@ -1427,6 +1468,8 @@ nmi:
   sta fvy,x
 : lda #6
   sta fflash,x
+  lda #FX_SPARK0
+  jsr spawn_spark
   lda #SMP_SNARE
   jsr sfx_play
   ldy att
@@ -1959,61 +2002,42 @@ nmi:
   lda #1
   sta dirty,x
 @same:
-  ; OAM entry X/2: x = fx>>4 - 32, y = FLOOR + fy>>4 - 64
+  ; OAM entry X/2: x = fx>>4 - 32, y = FLOOR + fy>>4 - 64; hidden (x = 256) on odd flash frames
   lda fx,x
   asr4
   sec
   sbc #32
-  sta tmp0
+  and #$01FF
+  sta oa_x
   lda fy,x
   asr4
   clc
   adc #FLOOR-64
-  sta tmp1
+  sta oa_y
   lda fflash,x
   and #1
   beq :+
-  lda #240
-  sta tmp1                  ; hidden on odd flash frames
+  lda #$0100
+  sta oa_x
 : txa
-  asl a                     ; X=2 -> OAM entry 1 -> byte offset 4
-  tay
-  a8
-  lda tmp0
-  sta oam_shadow,y
-  lda tmp1
-  sta oam_shadow+1,y
-  txa
   asl a
   asl a                     ; tile 0 / 8
-  sta oam_shadow+2,y
-  txa                       ; X=2 -> $02: palette 1 (OAM byte 3 = vhoopppN, palette in bits 1..3)
+  sta oa_tile
+  txa                       ; X=2 -> palette 1 (OAM byte 3 = vhoopppN)
   ora #$20                  ; priority 2
   ldy fface,x
   cpy #1
   beq :+
   ora #$40                  ; h-flip
-: sta tmp2
+: sta oa_attr
+  lda #1
+  sta oa_large
   txa
-  asl a
+  lsr a
   tay
-  lda tmp2
-  sta oam_shadow+3,y
-  ; hi table bits: x bit 8 (bit 0 for sprite 0, bit 2 for sprite 1); size bits 1 and 3 stay set
-  lda tmp0+1
-  and #1                    ; 1 if x negative (bit 8 of the 9-bit x)
-  sta tmp2
-  lda #$FE
-  cpx #2
-  bne :+
-  asl tmp2
-  asl tmp2
-  lda #$FB
-: and oam_shadow+512
-  ora tmp2
-  ora #$0A
-  sta oam_shadow+512
-  a16
+  phx
+  jsr oam_set
+  plx
   rts
 .endproc
 
@@ -2286,16 +2310,6 @@ nmi:
   rts
 .endproc
 
-; A = song address (bank $80)
-.proc song_start
-  sta song_ptr
-  sta song_base
-  lda (song_ptr)
-  and #$00FF
-  sta song_wait
-  rts
-.endproc
-
 .proc song_tick
   lda song_wait
   beq @run
@@ -2304,36 +2318,36 @@ nmi:
 @run:
   a8
   ldy #1
-  lda (song_ptr),y
+  lda [sng],y
   cmp #$FE
   beq @loop
   cmp #$FF
   beq @next
   sta snd_cmd
   iny
-  lda (song_ptr),y
+  lda [sng],y
   sta snd_p1
   iny
-  lda (song_ptr),y
+  lda [sng],y
   sta snd_p2
   iny
-  lda (song_ptr),y
+  lda [sng],y
   sta snd_p3
   jsr spc_cmd
   a8
 @next:
   a16
-  lda song_ptr
+  lda sng
   clc
   adc #5
-  sta song_ptr
+  sta sng
   bra @wait
 @loop:
   a16
-  lda song_base
-  sta song_ptr
+  lda sng_base
+  sta sng
 @wait:
-  lda (song_ptr)
+  lda [sng]
   and #$00FF
   sta song_wait
   bne @done
@@ -2368,7 +2382,16 @@ nmi:
   stz snd_p2
   lda #$10
   sta snd_p3                ; pitch $1000 = native rate
-  jsr spc_cmd
+  a16
+  lda sfx_pitch
+  beq :+
+  a8
+  sta snd_p2
+  xba
+  sta snd_p3
+  a16
+  stz sfx_pitch
+: jsr spc_cmd
   ply
   plx
   rts
@@ -2377,12 +2400,14 @@ nmi:
 irq:
   rti
 
+.include "screens.s"
+
 ; ------------------------------------------------------------------ header + vectors
 .segment "HEADER"
   .byte "BABY BEATDOWN        "   ; 21 bytes
   .byte $30                       ; LoROM, FastROM
   .byte $00                       ; ROM only
-  .byte $0A                       ; 1 MB
+  .byte $0B                       ; 2 MB
   .byte $07                       ; 128 KB SRAM (used only as the test-runner screenshot channel)
   .byte $01                       ; NTSC
   .byte $33

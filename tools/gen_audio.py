@@ -196,7 +196,8 @@ for n, i in INSTR_ID.items(): inc.append(f"SMP_{n.upper()} = {i}")
 inc.append("SPC_SAMPLES_ADDR = $%04X" % DIR_ADDR)
 inc.append("PITCH_TAB:   ; midi 24..107 -> DSP pitch for the 128-sample loops")
 inc.append("  .word " + ", ".join(str(pitch_for(m)) for m in range(24, 108)))
-songs = sys.argv[1:] or ["bayou"]
+songs = sys.argv[1:] or ["bayou", "backyard", "rooftop", "farm", "pond", "cave", "garden", "leaf", "nursery"]
+inc.append('.segment "SONGS"')
 for name in songs:
     j = json.load(open(os.path.join(root, f"toy/sources/songs/{name}.json")))
     stream, total = convert_song(j)
@@ -204,4 +205,8 @@ for name in songs:
     for i in range(0, len(stream), 40):
         inc.append("  .byte " + ", ".join(str(b) for b in stream[i:i + 40]))
     print(f"song {name}: {len(stream)} bytes, {total} frames ({total/60:.1f} s) per loop")
+inc.append('.segment "RODATA"')
+inc.append("SONG_TAB:\n  .word " + ", ".join(f".loword(SONG_{n.upper()})" for n in songs))
+inc.append("SONG_BANK:\n  .byte " + ", ".join(f"^SONG_{n.upper()}" for n in songs))
+inc.append("SEL_PITCH:\n  .word %d, %d, %d" % (pitch_for(72), pitch_for(76), pitch_for(79)))   # C5 E5 G5
 open(os.path.join(OUT, "audio.inc"), "w").write("\n".join(inc) + "\n")

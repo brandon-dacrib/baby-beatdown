@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """emu_test.py: run dist/baby-beatdown.sfc headless in Mesen2 and get screenshots + engine state back.
 
-Mesen's test runner forbids Lua file I/O, so the script writes half-resolution RGB555 screenshots (128x112)
-and the 256-byte zero page into the cartridge's 128 KB save RAM; Mesen writes that to disk on exit.
+Mesen's test runner forbids Lua file I/O, so the script writes each screenshot (Mesen's own PNG) and the
+256-byte zero page etc. into the cartridge's 128 KB save RAM (32 KB per snapshot); Mesen writes that to disk on exit.
 usage: emu_test.py OUTPREFIX FRAME[,FRAME...] [--input FRAME-FRAME:keys ...] [--rom ROM] [--mesen PATH]
   keys: letters from a b x y l r s(elect) t(start) u d l(eft)->L  r(ight)->R, e.g. 30-60:R  90-92:y
   writes OUTPREFIX_<frame>.png and prints the fighter state at each snapshot."""
@@ -11,7 +11,7 @@ root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 mesen = os.path.join(root, ".tools/mesen/Mesen.app/Contents/MacOS/Mesen")
 rom = os.path.join(root, "dist/baby-beatdown.sfc")
 srm = os.path.expanduser("~/Library/Application Support/Mesen2/Saves/baby-beatdown.srm")
-args = sys.argv[1:]
+args = [a for a in sys.argv[1:] if a not in ("--bg3", "--oam", "--full")]
 inputs = []
 while "--input" in args:
     i = args.index("--input"); spec = args[i + 1]; del args[i:i + 2]
@@ -27,22 +27,10 @@ lua = ["local shots = {" + ", ".join(f"[{f}]={k}" for k, f in enumerate(frames))
        "local f = 0",
        "local function dump(k)",
        "  local base = k * 0x8000",
-       "  local px = emu.getScreenBuffer()",
-       "  local sz = emu.getScreenSize()",
-       "  local w = sz.width",
-       "  local o = base",
-       "  for y = 0, 111 do",
-       "    for x = 0, 127 do",
-       "      local c = px[1 + (y * 2) * w + x * 2]",
-       "      local r = (c >> 19) & 31",
-       "      local g = (c >> 11) & 31",
-       "      local b = (c >> 3) & 31",
-       "      local v = r | (g << 5) | (b << 10)",
-       "      emu.write(o, v & 255, emu.memType.snesSaveRam)",
-       "      emu.write(o + 1, v >> 8, emu.memType.snesSaveRam)",
-       "      o = o + 2",
-       "    end",
-       "  end",
+       "  local png = emu.takeScreenshot()",
+       "  local n = #png",
+       "  emu.write(base, n & 255, emu.memType.snesSaveRam); emu.write(base + 1, (n >> 8) & 255, emu.memType.snesSaveRam)",
+       "  for i = 1, n do emu.write(base + 1 + i, string.byte(png, i), emu.memType.snesSaveRam) end",
        "  for i = 0, 255 do emu.write(base + 0x7000 + i, emu.read(i, emu.memType.snesWorkRam), emu.memType.snesSaveRam) end",
        "  for i = 0, 543 do emu.write(base + 0x7100 + i, emu.read(i, emu.memType.snesSpriteRam), emu.memType.snesSaveRam) end",
        "  for i = 0, 511 do emu.write(base + 0x7400 + i, emu.read(i, emu.memType.snesCgRam), emu.memType.snesSaveRam) end",
@@ -51,6 +39,7 @@ lua = ["local shots = {" + ", ".join(f"[{f}]={k}" for k, f in enumerate(frames))
        "  for i = 0, 31 do emu.write(base + 0x7800 + i, emu.read(0x200 + i, spct), emu.memType.snesSaveRam) end",
        "  for i = 0, 15 do emu.write(base + 0x7820 + i, emu.read(0x300 + i, spct), emu.memType.snesSaveRam) end",
        "  for i = 0, 3 do emu.write(base + 0x7830 + i, emu.read(0xF4 + i, spct), emu.memType.snesSaveRam) end",
+       "  for i = 0, 1791 do emu.write(base + 0x7840 + i, emu.read(0x420 + i, emu.memType.snesWorkRam), emu.memType.snesSaveRam) end",
        "end",
        "emu.addEventCallback(function()",
        "  for _, inp in ipairs(inputs) do",
@@ -74,14 +63,8 @@ ZP = ["fx", "fy", "fvx", "fvy", "fface", "fchar", "fhp", "fmeter", "fstate", "ft
       "fflash", "fwins", "fscript", "fkey", "fhold", "fcell", "fshown", "fboxset", "factive"]
 for k, fr in enumerate(frames):
     base = k * 0x8000
-    img = Image.new("RGB", (128, 112))
-    pix = img.load()
-    for y in range(112):
-        for x in range(128):
-            v = struct.unpack_from("<H", d, base + (y * 128 + x) * 2)[0]
-            pix[x, y] = ((v & 31) * 8, ((v >> 5) & 31) * 8, ((v >> 10) & 31) * 8)
-    img = img.resize((256, 224), Image.NEAREST)
-    img.save(f"{out}_{fr}.png")
+    n = d[base] | d[base + 1] << 8
+    open(f"{out}_{fr}.png", "wb").write(d[base + 2: base + 2 + n])
     zp = d[base + 0x7000: base + 0x7100]
     def w(i): return struct.unpack_from("<h", zp, i)[0]
     print(f"frame {fr}: " + " ".join(f"{n}={w(i*4)}/{w(i*4+2)}" for i, n in enumerate(ZP)))
@@ -89,5 +72,12 @@ for k, fr in enumerate(frames):
     print("  oam0..1:", oam[:8].hex(), "hi:", oam[512:514].hex(), "| cgram 0..3:", cg[:8].hex(), "slot3:", cg[96:104].hex(), "obj0:", cg[256:264].hex(), "| vram $6000:", vr[:16].hex(), "nonzero:", sum(1 for b in vr if b))
     spc = d[base + 0x7800: base + 0x7840]
     print("  spc $200:", spc[:12].hex(), "$300:", spc[32:40].hex(), "ports:", spc[48:52].hex())
+    bg3 = d[base + 0x7840: base + 0x7840 + 1792]
+    if "--bg3" in sys.argv:
+        for row in range(28):
+            words = struct.unpack_from("<32H", bg3, row * 64)
+            if any(words): print(f"  bg3 row {row:2d}: " + " ".join(f"{w & 1023:3d}" for w in words))
+    if "--oam" in sys.argv:
+        for n in range(16): print(f"  oam {n:2d}: {oam[n*4:n*4+4].hex()}", "hi", f"{(oam[512 + n // 4] >> ((n % 4) * 2)) & 3}")
     print(f"  pad={zp[0x7c]|zp[0x7d]<<8:04x} frame_ctr={w(0x80)} clock={w(0x82)} rng={w(0x84)} ai_t={w(0x86)} ai_plan={w(0x88)} spr={w(0x74)&0xffff:04x}/{w(0x76)&0xffff:04x} bank={zp[0x78]:02x}/{zp[0x7a]:02x}")
 print("exit", r.returncode)

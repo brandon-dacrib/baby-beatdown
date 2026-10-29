@@ -5,11 +5,10 @@
   gen/charN.bin     56 poses x 2048 bytes: each pose as a 64x64 4bpp OBJ tile block laid out for ONE 64x64
                     sprite (8 tile rows of 8 tiles, 256 bytes per row, rows DMA'd to OBJ name-table rows)
   gen/charN.pal     15 colours, 2 bytes each (BGR555)
-  gen/stageN.bin    4bpp BG1 tiles (16 words each), gen/stageN.map 28x32 words, gen/stageN.pal 6 x 15 words
   gen/font.bin      2bpp BG3 font: 49 glyphs (A..Z = 1..26, 0..9 = 27..36, 43/44 health, 45/46 meter)
-usage: .venv/bin/python tools/gen_asm.py [stage numbers...]   (default: stage 1)
+usage: .venv/bin/python tools/gen_asm.py   (stages, screens and effects: tools/gen_screens.py)
 Units: positions in 1/16 px; boxes are centre-x (signed, facing right), centre-y above the feet, half w, half h."""
-import json, os, sys, struct, tempfile
+import json, os, sys, struct
 here = os.path.dirname(os.path.abspath(__file__)); root = os.path.join(here, "..")
 sys.path.insert(0, here)
 OUT = os.path.join(root, "gen"); os.makedirs(OUT, exist_ok=True)
@@ -54,9 +53,9 @@ S("hit",    [(1,0x81,c(7),BS_HIT)])
 S("gut",    [(1,0x81,c(67),BS_HIT)])
 S("headsnap",[(1,0x81,c(68),BS_HIT)])
 S("stagger",[(1,0x81,c(69),BS_HIT)])
-S("ko",     [(1,0x81,c(9),BS_KO)])
+S("ko",     [(10,0,c(7),BS_KO),(1,0x81,c(9),BS_KO)])
 S("super",  [(1,0x81,c(10),BS_STAND)])
-S("win",    [(1,0x81,c(70),BS_STAND)])
+S("win",    [(14,0,c(70),BS_STAND),(14,0x81,c(75),BS_STAND)])
 for n in names:
     a = A[n]; low = a.get("low", False)
     base = BS_CROUCH if low else (BS_AIR if a.get("air") or a.get("hop") else BS_STAND)
@@ -160,16 +159,6 @@ for ci, j in enumerate(chars, start=1):
     open(os.path.join(OUT, f"char{ci}.pal"), "wb").write(pal)
 print("char1..8.bin: 56 poses x 2048 bytes each")
 
-# ---- stages
-import quantize
-for n in [int(x) for x in sys.argv[1:]] or [1]:
-    with tempfile.TemporaryDirectory() as tmp:
-        order, mapw, pals, slots = quantize.run(n, os.path.join(root, f"render/stage{n}.png"), tmp, ((0,0,0),(0,0,0)))
-    open(os.path.join(OUT, f"stage{n}.bin"), "wb").write(b"".join(order))
-    open(os.path.join(OUT, f"stage{n}.map"), "wb").write(b"".join(struct.pack("<H", x) for x in mapw))
-    open(os.path.join(OUT, f"stage{n}.pal"), "wb").write(b"".join(struct.pack("<H", x) for p in pals for x in p))
-    print(f"stage{n}: {len(order)} tiles")
-
 # ---- font: 2bpp from the 4bpp sheet (colour 1 dark -> 1, yellow/orange 2,3 -> 2, white 4 -> 3, the rest -> 3)
 f = json.load(open(os.path.join(root, "toy/sources/font.json")))
 grid = f["grid"]; nglyph = len(grid[0]) // 8
@@ -183,5 +172,10 @@ for gi in range(nglyph):
             bit = 7 - x
             p0 |= (v & 1) << bit; p1 |= (v >> 1) << bit
         fb += bytes((p0, p1))
+for row in range(8):
+    p1 = 0xFC if row < 2 else (0xC0 if row < 6 else 0)
+    fb += bytes((0, p1))          # glyph 49: bracket corner, colour 2
+for row in range(8): fb += bytes((0xFF, 0))   # glyph 50: solid block, colour 1
+nglyph += 2
 open(os.path.join(OUT, "font.bin"), "wb").write(fb)
 print(f"font: {nglyph} glyphs, 2bpp")
