@@ -29,7 +29,8 @@ and its dumped fighter poses as `render/poses_orig/charN.json`.
 | `tools/select_bg.py` | the player-select map: the United States with the eight stage locations |
 | `tools/scenes2.py` | paints the eight 384x224 arenas in the Street Fighter II recipe (sky band, tall middle layer with large spectators whose faces and lip colour follow their skin tone, flanking props, perspective floors); `render/stageN.png` |
 | `tools/gen_screens.py` | the nine paintings (stages 1..8 + the select map) as tiles/maps/palettes, title logo, 96x96 portraits + 32x32 icons, 32x32 effect cells (crowd, birds, butterflies, candles, shadow, sparks), sky gradient HDMA tables, per-stage ambient records, select labels; packs it all into 32 KB banks (`gen/screens.inc`) |
-| `tools/gen_audio.py` | synthesizes the 17 instruments, BRR-encodes them, converts all nine `data/songs/*.json` to `[delta frames][cmd][p1][p2][p3]` streams (48 ticks per beat) |
+| `tools/compose.py` | composes the nine songs (`data/songs/*.json`): one per location in a fitting style (West Coast funk for LA, pop rock for Ohio, jazzy hip hop for NYC, barn-dance country for Iowa, a folk waltz for Minnesota, deep mountain minor for Kentucky, southern soul for Georgia, Miami latin for Florida, a music-box lullaby for the title and select) |
+| `tools/gen_audio.py` | synthesizes the 22 instruments, BRR-encodes them, converts all nine `data/songs/*.json` to `[delta frames][cmd][p1][p2][p3]` streams (48 ticks per beat) |
 | `tools/emu_test.py` | runs the ROM in Mesen2's test runner with injected pad input; Mesen's own PNG screenshot + zero page + OAM/CGRAM/VRAM/SPC probes come back through the 128 KB save RAM (Mesen's Lua may not write files). `--bg3` / `--oam` print the text layer and sprite table |
 | `tools/fixsum.py` | header checksum |
 
@@ -96,7 +97,7 @@ and its dumped fighter poses as `render/poses_orig/charN.json`.
 - **Audio**: the SPC700 only executes commands; the main CPU plays the stage's song (nine songs, long-addressed
   from bank 63) on voices 0..5 and sound effects on 6..7 (hat on every attack, a low thump plus snare on every
   hit, tom on block, a long slam plus crash on the KO blow, bell on a super, pluck notes on the select screen).
-  17 samples (32-entry directory at $0300, ADSR table at $0380).
+  22 samples (32-entry directory at $0300, ADSR table at $0380). Songs are composed by `tools/compose.py`.
 
 ## Verify
 

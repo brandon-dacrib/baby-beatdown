@@ -108,6 +108,11 @@ INSTR = [  # name, waveform, looped, adsr (ar, dr, sl, sr) ; ar 0-15 (15 fastest
     ("crash",   oneshot_crash(), False,                             (15, 7, 7, 0)),
     ("clap",    oneshot_clap(), False,                              (15, 7, 7, 0)),
     ("thump",   oneshot_thump(), False,                             (15, 7, 7, 0)),
+    ("guitar",  harmonic([1.0, 0.8, 0.55, 0.4, 0.3, 0.2, 0.15, 0.1], phase=0.3), True, (15, 2, 3, 13)),
+    ("brass",   harmonic([1.0, 0.9, 0.75, 0.6, 0.5, 0.4, 0.33, 0.28, 0.24]), True, (10, 6, 6, 9)),
+    ("vibes",   harmonic([1.0, 0.0, 0.0, 0.35, 0.0, 0.0, 0.0, 0.12]), True, (15, 3, 2, 12)),
+    ("conga",   oneshot_tom(2600), False,                           (15, 7, 7, 0)),
+    ("shaker",  oneshot_hat(1200, 220, 17), False,                  (15, 7, 7, 0)),
     ("slam",    oneshot_slam(), False,                              (15, 7, 7, 0)),
 ]
 INSTR_ID = {n: i for i, (n, *_r) in enumerate(INSTR)}
@@ -168,7 +173,7 @@ print(f"samples: {len(INSTR)} instruments, {len(data)} bytes BRR, block {len(blo
 # ---------------------------------------------------------------- songs -> 60 Hz event streams
 def pitch_for(midi):
     return max(1, min(0x3FFF, int(round(4096 * 2 ** ((midi - BASE_MIDI) / 12)))))
-DRUMS = {"kick", "snare", "hat", "ohat", "tom", "crash", "clap"}
+DRUMS = {"kick", "snare", "hat", "ohat", "tom", "crash", "clap", "thump", "slam", "conga", "shaker"}
 def convert_song(j):
     tempo = j["tempo"]; rows = j["rows"]
     fpt = 3600.0 / (tempo * 48)        # frames per tick (48 ticks per beat: kick 0/96, snare 48/144, hats every 24)
@@ -190,9 +195,9 @@ def convert_song(j):
             v = min(range(6), key=lambda k: voice_free[k])
             voice_free[v] = f_off
             vol = max(1, min(127, row.get("vol", 100))) // 2
-            if snd in DRUMS: midi = 60 if snd != "kick" else 59
+            if snd in DRUMS: midi = row.get("note", 60)
             else: midi = row.get("note", 60) + (n.get("transpose", 0))
-            p = pitch_for(midi) if snd not in DRUMS else 4096
+            p = pitch_for(midi) if snd not in DRUMS else int(4096 * 2 ** ((midi - 60) / 12))
             events.append((f_on, 0, 0x00 | v, vol, vol, 0))              # volume
             events.append((f_on, 1, 0x40 | v, INSTR_ID[snd], p & 255, p >> 8))   # note on
             if snd not in DRUMS: events.append((f_off, 2, 0x80 | v, 0, 0, 0))  # note off
